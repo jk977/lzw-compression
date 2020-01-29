@@ -71,8 +71,11 @@ bool dict_contains(struct dict* dict, char const* key) {
      * check if the key exists in the dictionary.
      */
 
+    hash_t hash = (dict->hasher)(key);
+
     (void) dict;
     (void) key;
+    (void) hash;
 
     return false;
 }
@@ -82,9 +85,12 @@ void dict_set(struct dict* dict, char const* key, code_t code) {
      * assign the key to the given code in the dictionary.
      */
 
+    hash_t hash = (dict->hasher)(key);
+
     (void) dict;
     (void) key;
     (void) code;
+    (void) hash;
 }
 
 code_t dict_get(struct dict* dict, char const* key) {
@@ -92,8 +98,11 @@ code_t dict_get(struct dict* dict, char const* key) {
      * get the assigned code for the given key in the dictionary.
      */
 
+    hash_t hash = (dict->hasher)(key);
+
     (void) dict;
     (void) key;
+    (void) hash;
 
     return -1;
 }
