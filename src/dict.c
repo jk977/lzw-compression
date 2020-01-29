@@ -4,7 +4,6 @@
 
 struct dict {
     hasher_t hasher;
-    code_t last_code;
     code_t* codes;
 };
 
@@ -28,6 +27,12 @@ static hash_t default_hasher(char const* str) {
 }
 
 struct dict* dict_init(hasher_t hasher) {
+    /*
+     * create a new dictionary with the given hash function.
+     *
+     * if hasher is NULL, the default hashing algorithm is used.
+     */
+
     size_t const initial_size = 64;
 
     struct dict* dict = malloc(sizeof(*dict));
@@ -53,11 +58,19 @@ struct dict* dict_init(hasher_t hasher) {
 }
 
 void dict_destroy(struct dict* dict) {
+    /*
+     * deallocate the given dictionary.
+     */
+
     free(dict->codes);
     free(dict);
 }
 
 bool dict_contains(struct dict* dict, char const* key) {
+    /*
+     * check if the key exists in the dictionary.
+     */
+
     (void) dict;
     (void) key;
 
@@ -65,12 +78,20 @@ bool dict_contains(struct dict* dict, char const* key) {
 }
 
 void dict_set(struct dict* dict, char const* key, code_t code) {
+    /*
+     * assign the key to the given code in the dictionary.
+     */
+
     (void) dict;
     (void) key;
     (void) code;
 }
 
 code_t dict_get(struct dict* dict, char const* key) {
+    /*
+     * get the assigned code for the given key in the dictionary.
+     */
+
     (void) dict;
     (void) key;
 
