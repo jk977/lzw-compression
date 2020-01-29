@@ -1,19 +1,22 @@
-#ifndef DICT_H
-#define DICT_H
+#ifndef DICT_H_
+#define DICT_H_
+
 #include <stdbool.h>
+#include <stdint.h>
 
-#include "sequence.h"
+typedef uint32_t hash_t;
+typedef uint32_t code_t;
 
-typedef struct _dict {
-    int placeHolder;    // replace this line with your desired contents
-} Dict;
+typedef hash_t (*hasher_t)(char const*);
 
-Dict* newDict(unsigned int hashSize);
+struct dict;
 
-void deleteDictDeep(Dict* dict);
+struct dict* dict_init(hasher_t hasher);
+void dict_destroy(struct dict* dict);
 
-bool searchDict(Dict* dict, Sequence* key, unsigned int* code);
+bool dict_contains(struct dict* dict, char const* key, code_t code);
 
-void insertDict(Dict* dict, Sequence* key, unsigned int  code);
+void dict_set(struct dict* dict, char const* key, code_t code);
+code_t dict_get(struct dict* dict, char const* key);
 
-#endif
+#endif // DICT_H_
