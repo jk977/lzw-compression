@@ -51,7 +51,6 @@ struct dict* dict_init(hasher_t hasher) {
         dict->hasher = default_hasher;
     }
 
-    dict->last_code = 0;
     dict->codes = codes;
 
     return dict;
