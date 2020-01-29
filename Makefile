@@ -4,6 +4,8 @@
 # Targets:
 #   all     -- Compile project executable.
 #   profile -- Same as 'all' except with profiling enabled.
+#   tests   -- Compile all test files.
+#   paths   -- Ensures the build path is structured properly.
 #   clean   -- Remove object files and project executables from build path.
 #   tags    -- Create tags for Universal Ctags.
 #
@@ -66,19 +68,28 @@ endif
 # build targets #
 #################
 
-.PHONY: all profile clean tags
+.PHONY: all profile tests paths clean tags
 
-all: clean $(OBJECTS)
-	mkdir -p $(BUILD_DIR)
+all: paths clean $(OBJECTS)
 	$(CC) $(LIBRARIES) $(CFLAGS) $(OBJECT_FILES) $(SRC_DIR)/main.c -o $(BUILD_DIR)/main
-
-profile: CFLAGS += -pg
-profile: all
 
 # default rule for an object file -- assumes no
 # other source files or libraries are needed
 %.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(SRC_DIR)/$*.c -c -o $(BUILD_DIR)/$*.o
+
+profile: CFLAGS += -pg
+profile: all
+
+tests: paths test-dict
+
+# default rule for test file -- no object dependencies
+# and outputs executable in $(BUILD_DIR)/tests
+test-%: tests/test_%.c
+	$(CC) $(LIBRARIES) $(CFLAGS) $(SRC_DIR)/$*.c $^ -o $(BUILD_DIR)/tests/$@
+
+paths:
+	mkdir -p $(BUILD_DIR)/tests
 
 clean:
 	find $(BUILD_DIR) \
