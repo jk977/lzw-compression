@@ -8,8 +8,27 @@ struct dict {
     code_t* codes;
 };
 
+static hash_t default_hasher(char const* str) {
+    /*
+     * default hasher; a modified version of djb2 from 
+     * http://www.cse.yorku.ca/~oz/hash.html
+     *
+     * this hash function should be functionally identical
+     * to djb2, but less obfuscated since compilers have
+     * improved at optimizations since djb2 was created.
+     */
+
+    hash_t hash = 5381;
+
+    while (*str++ != '\0') {
+        hash = 33 * hash + *str;
+    }
+
+    return hash;
+}
+
 struct dict* dict_init(hasher_t hasher) {
-    size_t const initial_size = 50;
+    size_t const initial_size = 64;
 
     struct dict* dict = malloc(sizeof *dict);
     code_t* codes = malloc(sizeof code_t * initial_size);
@@ -21,7 +40,12 @@ struct dict* dict_init(hasher_t hasher) {
         return NULL;
     }
 
-    dict->hasher = hasher;
+    if (hasher != NULL) {
+        dict->hasher = hasher;
+    } else {
+        dict->hasher = default_hasher;
+    }
+
     dict->last_code = 0;
     dict->codes = codes;
 
