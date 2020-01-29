@@ -30,8 +30,8 @@ static hash_t default_hasher(char const* str) {
 struct dict* dict_init(hasher_t hasher) {
     size_t const initial_size = 64;
 
-    struct dict* dict = malloc(sizeof *dict);
-    code_t* codes = malloc(sizeof code_t * initial_size);
+    struct dict* dict = malloc(sizeof(*dict));
+    code_t* codes = malloc(sizeof(code_t) * initial_size);
 
     if (dict == NULL || codes == NULL) {
         free(dict);
@@ -57,13 +57,22 @@ void dict_destroy(struct dict* dict) {
     free(dict);
 }
 
-bool dict_contains(struct dict* dict, char const* key, code_t code) {
+bool dict_contains(struct dict* dict, char const* key) {
+    (void) dict;
+    (void) key;
+
     return false;
 }
 
 void dict_set(struct dict* dict, char const* key, code_t code) {
+    (void) dict;
+    (void) key;
+    (void) code;
 }
 
 code_t dict_get(struct dict* dict, char const* key) {
+    (void) dict;
+    (void) key;
+
     return -1;
 }

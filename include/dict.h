@@ -14,7 +14,7 @@ struct dict;
 struct dict* dict_init(hasher_t hasher);
 void dict_destroy(struct dict* dict);
 
-bool dict_contains(struct dict* dict, char const* key, code_t code);
+bool dict_contains(struct dict* dict, char const* key);
 
 void dict_set(struct dict* dict, char const* key, code_t code);
 code_t dict_get(struct dict* dict, char const* key);
