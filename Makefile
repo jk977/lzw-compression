@@ -81,7 +81,8 @@ all: paths clean $(OBJECTS)
 profile: CFLAGS += -pg
 profile: all
 
-tests: paths test-dict
+tests: CFLAGS += -UNDEBUG
+tests: paths test-trie
 
 # default rule for test file -- no object dependencies
 # and outputs executable in $(BUILD_DIR)/tests
