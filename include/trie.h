@@ -1,6 +1,10 @@
 #ifndef TRIE_H_
 #define TRIE_H_
 
+#include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+
 typedef uint32_t value_t;
 
 struct trie;
@@ -20,8 +24,8 @@ void trie_destroy(struct trie* trie);
  *  - contains() returns true if the key is in the trie, otherwise false.
  */
 bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t value);
-value_t* trie_lookup(struct trie* trie, char const* key);
-bool trie_contains(struct trie* trie, char const* key, size_t length);
+value_t* trie_lookup(struct trie* trie, char const* key, size_t key_length);
+bool trie_contains(struct trie* trie, char const* key, size_t key_length);
 
 /*
  * C-string operations:

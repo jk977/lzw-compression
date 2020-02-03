@@ -41,11 +41,9 @@ bool test_contains(void) {
 }
 
 int main(void) {
-    bool success = test_init()
-        && test_set()
-        && test_contains();
-
-    return success ?
-        EXIT_SUCCESS :
-        EXIT_FAILURE;
+    if (test_init() && test_set() && test_contains()) {
+        return EXIT_SUCCESS;
+    } else {
+        return EXIT_FAILURE;
+    }
 }

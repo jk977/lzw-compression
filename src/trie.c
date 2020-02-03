@@ -6,7 +6,6 @@
 #define CHILDREN_COUNT 256
 
 struct trie {
-    char entry;
     value_t value;
     struct trie* children[CHILDREN_COUNT];
 };
@@ -22,7 +21,6 @@ struct trie* trie_init(void) {
         return NULL;
     }
 
-    trie->entry = '\0';
     trie->value = 0;
 
     for (size_t i = 0; i < CHILDREN_COUNT; ++i) {
@@ -64,11 +62,10 @@ static struct trie* get_subtrie_at(struct trie* trie, char const* key, size_t ke
         return trie;
     }
 
-    char index = key[0];
+    size_t index = (size_t) key[0];
     struct trie* child = trie->children[index];
-    bool trie_matches_key = (index == trie->entry);
 
-    if (!trie_matches_key || child == NULL) {
+    if (child == NULL) {
         // no such key exists in trie
         return NULL;
     } else {
@@ -87,9 +84,11 @@ bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t 
 
     size_t const tail_length = key_length - 1;
     struct trie* target = get_subtrie_at(trie, key, tail_length);
-    char new_entry = key[tail_length];
 
-    if (target == NULL || target->children[new_entry] != NULL) {
+    char const new_entry = key[tail_length];
+    size_t const entry_index = (size_t) new_entry;
+
+    if (target == NULL || target->children[entry_index] != NULL) {
         // expect target to be non-null, with a null child where the new entry is
         return false;
     }
@@ -100,8 +99,7 @@ bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t 
         return false;
     }
 
-    target->children[new_entry] = result;
-    result->entry = new_entry;
+    target->children[entry_index] = result;
     result->value = value;
 
     return true;
@@ -115,12 +113,12 @@ value_t* trie_lookup(struct trie* trie, char const* key, size_t key_length) {
     struct trie* result = get_subtrie_at(trie, key, key_length);
 
     return (result != NULL) ?
-        &result->entry :
+        &result->value :
         NULL;
 }
 
-value_t* trie_cstr_insert(struct trie* trie, char const* key, value_t value) {
-    return trie_lookup(trie, key, strlen(key), value);
+bool trie_cstr_insert(struct trie* trie, char const* key, value_t value) {
+    return trie_insert(trie, key, strlen(key), value);
 }
 
 value_t* trie_cstr_lookup(struct trie* trie, char const* key) {
