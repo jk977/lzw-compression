@@ -10,7 +10,8 @@ struct trie {
     struct trie* children[CHILDREN_COUNT];
 };
 
-struct trie* trie_init(void) {
+struct trie* trie_init(void)
+{
     /*
      * create an empty trie.
      */
@@ -30,7 +31,8 @@ struct trie* trie_init(void) {
     return trie;
 }
 
-void trie_destroy(struct trie* trie) {
+void trie_destroy(struct trie* trie)
+{
     /*
      * free the allocated trie.
      */
@@ -46,7 +48,8 @@ void trie_destroy(struct trie* trie) {
     free(trie);
 }
 
-static struct trie* get_subtrie_at(struct trie* trie, char const* key, size_t key_length) {
+static struct trie* get_subtrie_at(struct trie* trie, char const* key, size_t key_length)
+{
     /*
      * find the subtrie with the given key. for instance, if key is "abc",
      * the trie will be traversed from the root node to the child at 'a', then
@@ -77,7 +80,8 @@ static struct trie* get_subtrie_at(struct trie* trie, char const* key, size_t ke
     }
 }
 
-bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t value) {
+bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t value)
+{
     if (trie == NULL || key == NULL) {
         return false;
     }
@@ -105,11 +109,13 @@ bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t 
     return true;
 }
 
-bool trie_contains(struct trie* trie, char const* key, size_t key_length) {
+bool trie_contains(struct trie* trie, char const* key, size_t key_length)
+{
     return trie_lookup(trie, key, key_length) != NULL;
 }
 
-value_t* trie_lookup(struct trie* trie, char const* key, size_t key_length) {
+value_t* trie_lookup(struct trie* trie, char const* key, size_t key_length)
+{
     struct trie* result = get_subtrie_at(trie, key, key_length);
 
     return (result != NULL) ?
@@ -117,14 +123,17 @@ value_t* trie_lookup(struct trie* trie, char const* key, size_t key_length) {
         NULL;
 }
 
-bool trie_cstr_insert(struct trie* trie, char const* key, value_t value) {
+bool trie_cstr_insert(struct trie* trie, char const* key, value_t value)
+{
     return trie_insert(trie, key, strlen(key), value);
 }
 
-value_t* trie_cstr_lookup(struct trie* trie, char const* key) {
+value_t* trie_cstr_lookup(struct trie* trie, char const* key)
+{
     return trie_lookup(trie, key, strlen(key));
 }
 
-bool trie_cstr_contains(struct trie* trie, char const* key) {
+bool trie_cstr_contains(struct trie* trie, char const* key)
+{
     return trie_contains(trie, key, strlen(key));
 }

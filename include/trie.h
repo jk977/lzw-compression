@@ -2,10 +2,11 @@
 #define TRIE_H_
 
 #include <stddef.h>
-#include <stdint.h>
 #include <stdbool.h>
 
-typedef uint32_t value_t;
+#include "types.h"
+
+typedef code_t value_t;
 
 struct trie;
 
