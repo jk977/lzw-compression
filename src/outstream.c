@@ -78,8 +78,9 @@ void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
 
     // store remaining bits in buffer, adding trailing zeroes.
     // if no bits remain, buffer will be 0.
-    unsigned char mask = ~0u << (CHAR_BIT - pending_bits + outs->bufsize);
-    unsigned char remaining = bits & mask;
+    unsigned char const mask = ~0u << (CHAR_BIT - pending_bits + outs->bufsize);
+    unsigned char const remaining = bits & mask;
+
     outs->buffer |= remaining >> outs->bufsize;
     outs->bufsize = pending_bits;
 }
@@ -97,7 +98,7 @@ void outs_flush(struct outstream* outs)
 
     (outs->write)(outs->buffer, outs->context);
 
-    outs->buffer = '\0';
+    outs->buffer = 0;
     outs->bufsize = 0;
     ++outs->outcount;
 }
