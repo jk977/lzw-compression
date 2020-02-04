@@ -1,6 +1,8 @@
 #include "lzw.h"
+
+#include "outstream.h"
+#include "instream.h"
 #include "types.h"
-#include "trie.h"
 
 struct params {
     unsigned int current_bits;
@@ -34,12 +36,12 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         return false;
     }
 
-    int byte;
-    char next_output;
+    int byte = 0;
+    char next_output = '\0';
 
     while ((byte = read_byte(context)) != EOF) {
-        code_t code;
-        // TODO: get sequence of codes and write them, 1 char at a time
+        // TODO: generate sequence of codes and write them 1 byte at a time
+        next_output = byte;
         write_char(next_output, context);
     }
 
@@ -61,6 +63,15 @@ bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
 
     if (!verify_params(&p)) {
         return false;
+    }
+
+    int byte = 0;
+    char next_output = '\0';
+
+    while ((byte = read_byte(context)) != EOF) {
+        // TODO: decode sequence of codes and write them 1 byte at a time
+        next_output = byte;
+        write_char(next_output, context);
     }
 
     return false;
