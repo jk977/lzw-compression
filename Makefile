@@ -81,7 +81,7 @@ all: paths clean $(OBJECTS)
 profile: CFLAGS += -pg
 profile: all
 
-tests: CFLAGS += -UNDEBUG
+tests: CFLAGS += -UNDEBUG -Wno-error
 tests: paths test-trie test-outstream
 
 # default rule for test file -- no object dependencies

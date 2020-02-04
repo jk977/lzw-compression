@@ -7,7 +7,7 @@
 #include <limits.h>
 #include <string.h>
 
-static char const* filename = "./foo.txt";
+static char const* filename = "foo.txt";
 
 void write_file(unsigned char c, void* context)
 {
@@ -15,15 +15,37 @@ void write_file(unsigned char c, void* context)
     fputc(c, stream);
 }
 
-void test_chars(FILE* stream) {
+void test_chars(struct outstream* outs) {
     char const* content = "foobarbaz\n";
-    struct outstream* outs = outs_init(stream, write_file);
 
     for (size_t i = 0; i < strlen(content); ++i) {
         outs_write_bits(outs, content[i], CHAR_BIT);
     }
+}
 
-    outs_destroy(outs);
+void test_bits(struct outstream* outs)
+{
+    unsigned char content[] = { 'a', '\n' };
+    size_t write_size = 2; // bits at a time
+
+    for (size_t i = 0; i < sizeof(content) / sizeof(content[0]); ++i) {
+        unsigned char current = content[i];
+        size_t written = 0;
+
+        while (written < CHAR_BIT) {
+            size_t actual_size = write_size;
+
+            if (written + write_size > CHAR_BIT) {
+                actual_size = CHAR_BIT - written;
+            }
+
+            outs_write_bits(outs, current, actual_size);
+            current <<= write_size;
+            written += write_size;
+        }
+
+        ++write_size;
+    }
 }
 
 int main(void)
@@ -34,6 +56,11 @@ int main(void)
         return EXIT_FAILURE;
     }
 
-    test_chars(stream);
+    struct outstream* outs = outs_init(stream, write_file);
+
+    test_bits(outs);
+    outs_destroy(outs);
+    fclose(stream);
+
     return EXIT_SUCCESS;
 }

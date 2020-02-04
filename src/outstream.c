@@ -60,17 +60,14 @@ void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
         // size of the empty bits in buffer
         size_t const lower_size = CHAR_BIT - outs->bufsize;
 
-        // ensure that outs->buffer and bits don't contain garbage by
-        // zeroing unimportant bits
-        unsigned char const upper_mask = ~0u << lower_size;
-        unsigned char const lower_mask = ~upper_mask;
-
         // put the old buffer bits into the upper part of the output,
         // and the parameter bits into the lower part, as specified by
         // the assignment description
-        outs->buffer = (outs->buffer & upper_mask) | (bits & lower_mask);
-        outs->bufsize = CHAR_BIT;
+        unsigned char const upper = outs->buffer & (~0u << lower_size);
+        unsigned char const lower = bits >> outs->bufsize;
 
+        outs->buffer = upper | lower;
+        outs->bufsize = CHAR_BIT;
         outs_flush(outs);
 
         // update information about the remaining bits.
@@ -79,12 +76,11 @@ void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
         bits >>= lower_size;
     }
 
-    if (pending_bits > 0) {
-        // store remaining bits in buffer, adding trailing zeroes
-
-        outs->buffer = bits << (CHAR_BIT - pending_bits);
-    }
-
+    // store remaining bits in buffer, adding trailing zeroes.
+    // if no bits remain, buffer will be 0.
+    unsigned char mask = ~0u << (CHAR_BIT - pending_bits + outs->bufsize);
+    unsigned char remaining = bits & mask;
+    outs->buffer |= remaining >> outs->bufsize;
     outs->bufsize = pending_bits;
 }
 
