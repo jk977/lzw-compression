@@ -23,6 +23,18 @@ void test_chars(struct instream* ins) {
     }
 }
 
+void test_bits(struct instream* ins) {
+    int32_t c;
+    size_t const read_size = 16;
+
+    while ((c = ins_read_bits(ins, read_size)) != EOF) {
+        for (size_t i = 0; i <= read_size; i += CHAR_BIT) {
+            unsigned char const current = c >> (read_size - i);
+            putchar(current);
+        }
+    }
+}
+
 int main(void)
 {
     FILE* stream = fopen(filename, "r");
