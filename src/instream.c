@@ -6,6 +6,8 @@
 
 #include <limits.h>
 
+#include <sys/types.h>
+
 #define BITS_IN(x) (CHAR_BIT * sizeof(x))
 
 struct instream {
@@ -54,52 +56,72 @@ void ins_destroy(struct instream* ins)
 int32_t ins_read_bits(struct instream* ins, size_t bit_count)
 {
     if (bit_count == 0) {
+        // do nothing when asked to read 0 bits
+        return EOF;
+    } else if (bit_count > BITS_IN(ins->buffer)) {
+        // impossible to return more bits than space allows
         return EOF;
     }
 
+    ssize_t bits_remaining = bit_count - ins->bufsize;
     int32_t result = ins->buffer;
-    size_t bits_read = ins->bufsize;
 
-    int next = 0;
-    int overflow = 0;
-
-    while (bits_read < bit_count && next != EOF) {
-        next = (ins->read)(ins->context);
+    while (bits_remaining > 0) {
+        int next = (ins->read)(ins->context);
 
         if (next == EOF) {
-            if (bits_read == 0) {
+            // no more data to be read; exit loop early
+            if (bits_remaining == (ssize_t) bit_count) {
                 result = EOF;
             }
 
             break;
         }
 
-        unsigned char const next_byte = (unsigned char) next;
-        size_t const bits_remaining = bit_count - bits_read;
-        bool const has_overflow = bits_remaining < BITS_IN(next);
+        // assume ins->read returns 1 byte at a time, or EOF on error
+        unsigned char const next_byte = next;
 
-        size_t const move_distance = has_overflow ?
-            BITS_IN(next_byte) - bits_remaining :
-            bits_remaining - BITS_IN(next_byte);
+        // check if enough bits have been read for the result
+        if (bits_remaining <= (ssize_t) BITS_IN(next_byte)) {
+            // extract the bits to be stored in the buffer, zeroing the rest
+            size_t const new_bits_shift = BITS_IN(next_byte) - bits_remaining;
+            unsigned char const new_bits = next_byte << new_bits_shift;
 
-        if (has_overflow) {
-            // less bits needed than read
-            int32_t const overflow_mask = ~0u >> bits_remaining;
-            int32_t const overflow_bits = next & overflow_mask;
+            // extract the overflow bits, zeroing the rest
+            size_t const overflow_shift = BITS_IN(ins->buffer) + BITS_IN(next_byte) - bits_remaining;
+            unsigned char const overflow_mask = ~0u >> bits_remaining;
+            unsigned char const overflow_bits = next_byte & overflow_mask;
 
-            result |= next_byte >> move_distance;
-            overflow |= overflow_bits << bits_remaining;
+            // find out how much the new bits need to be shifted
+            // to align with the rest of the data in the buffer
+            size_t const new_shift = BITS_IN(ins->buffer)
+                - BITS_IN(next_byte)
+                - bit_count + bits_remaining;
+
+            // combine the buffer and new bits into the result
+            // and store the aligned overflow bits in the buffer
+            result = ins->buffer | (new_bits << new_shift);
+
+            // avoid runtime errors caused by
+            // shifting an n-bit integer by n
+            if (BITS_IN(ins->buffer) >= overflow_shift) {
+                ins->buffer = 0;
+            } else {
+                ins->buffer = overflow_bits << overflow_shift;
+            }
+
+            ins->bufsize = BITS_IN(next_byte) - bits_remaining;
         } else {
-            // more bits needed than an int has
-            result |= next_byte << move_distance;
-            overflow = 0;
+            size_t const shift_distance = BITS_IN(ins->buffer)
+                - ins->bufsize
+                - BITS_IN(next_byte);
+
+            ins->buffer |= next_byte << shift_distance;
+            ins->bufsize += BITS_IN(next_byte);
         }
 
-        bits_read += BITS_IN(next_byte);
+        bits_remaining -= BITS_IN(next_byte);
     }
-
-    ins->buffer = overflow;
-    ins->bufsize = bits_read - bit_count;
 
     return result;
 }

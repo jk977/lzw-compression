@@ -28,10 +28,11 @@ void test_bits(struct instream* ins) {
     size_t const read_size = 16;
 
     while ((c = ins_read_bits(ins, read_size)) != EOF) {
-        for (size_t i = 0; i <= read_size; i += CHAR_BIT) {
-            unsigned char const current = c >> (read_size - i);
-            putchar(current);
-        }
+        unsigned char const first = c >> 24;
+        unsigned char const second = c >> 16;
+
+        putchar(first);
+        putchar(second);
     }
 }
 

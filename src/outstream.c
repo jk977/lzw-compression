@@ -54,9 +54,9 @@ void outs_destroy(struct outstream* outs)
  */
 void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
 {
-    size_t pending_bits = bit_count + outs->bufsize;
+    size_t bits_pending = bit_count + outs->bufsize;
 
-    while (pending_bits >= CHAR_BIT) {
+    while (bits_pending >= CHAR_BIT) {
         // size of the empty bits in buffer
         size_t const lower_size = CHAR_BIT - outs->bufsize;
 
@@ -72,17 +72,17 @@ void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
 
         // update information about the remaining bits.
         // note: bitshifting signed integers is technically undefined behavior.
-        pending_bits -= CHAR_BIT;
+        bits_pending -= CHAR_BIT;
         bits >>= lower_size;
     }
 
     // store remaining bits in buffer, adding trailing zeroes.
     // if no bits remain, buffer will be 0.
-    unsigned char const mask = ~0u << (CHAR_BIT - pending_bits + outs->bufsize);
+    unsigned char const mask = ~0u << (CHAR_BIT - bits_pending + outs->bufsize);
     unsigned char const remaining = bits & mask;
 
     outs->buffer |= remaining >> outs->bufsize;
-    outs->bufsize = pending_bits;
+    outs->bufsize = bits_pending;
 }
 
 /*
