@@ -12,7 +12,9 @@ struct instream {
     uint32_t incount;
 };
 
-
+/*
+ * ins_init: Initialize an input bitstream on the heap.
+ */
 struct instream* ins_init(void* context,
         int (*read_bits)(void* context))
 {
@@ -32,21 +34,22 @@ struct instream* ins_init(void* context,
     return ins;
 }
 
+/*
+ * ins_destroy: Free the structure allocated by ins_init().
+ */
 void ins_destroy(struct instream* ins)
 {
     free(ins);
 }
 
+/*
+ * ins_read_bits: Read the given number of bits.
+ */
 int32_t ins_read_bits(struct instream* ins, size_t bit_count)
 {
-    return -1;
-}
-
-int32_t ins_flush(struct instream* ins)
-{
-    if (ins->bufsize == 0) {
+    if (bit_count == 0) {
         return -1;
     }
 
-    return ins->buffer;
+    return -1;
 }

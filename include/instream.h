@@ -12,6 +12,5 @@ struct instream* ins_init(void* context,
 void ins_destroy(struct instream* ins);
 
 int32_t ins_read_bits(struct instream* ins, size_t bit_count);
-int32_t ins_flush(struct instream* ins);
 
 #endif // INSTREAM_H_

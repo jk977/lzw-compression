@@ -38,7 +38,7 @@ struct outstream* outs_init(void* context,
 }
 
 /*
- * outs_destroy: Free the structure created by outs_init().
+ * outs_destroy: Free the structure allocated by outs_init().
  */
 void outs_destroy(struct outstream* outs)
 {
