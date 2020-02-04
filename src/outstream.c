@@ -9,10 +9,10 @@ struct outstream {
     void (*write)(unsigned char, void*);
     void* context;
 
-    uint32_t outcount;
-
-    uint32_t buffer;
+    unsigned char buffer;
     uint8_t bufsize;
+
+    uint32_t outcount;
 };
 
 struct outstream* outs_init(void (*write_byte)(unsigned char c, void* context))
@@ -43,21 +43,29 @@ void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
     size_t pending_bits = bit_count + outs->bufsize;
 
     while (pending_bits >= CHAR_BIT) {
-        if (pending_bits > CHAR_BIT) {
-            // write the next byte and store the remainder
-        } else {
-            // write a single byte and don't store anything
-        }
+        // size of the empty bits in buffer
+        size_t const lower_size = CHAR_BIT - outs->bufsize;
 
+        // ensure that outs->buffer and bits don't contain garbage bits
+        unsigned char const upper_mask = (~0 << lower_size);
+        unsigned char const lower_mask = (~0 >> lower_size);
+
+        outs->buffer = (outs->buffer & upper_mask) | (bits & lower_mask);
+        outs->bufsize = CHAR_BIT;
+        outs_flush(outs);
+
+        // update information about the remaining bits.
+        // note: bitshifting signed integers is technically undefined behavior.
         pending_bits -= CHAR_BIT;
+        bits >>= lower_size;
     }
 
     if (pending_bits >= 0) {
-        // store remaining bits in buffer
+        // store remaining bits in buffer, adding trailing zeroes
+        outs->buffer = (bits << CHAR_BIT - pending_bits);
     }
 
-    outs->bufsize += bit_count;
-    outs->bufsize %= CHAR_BIT;
+    outs->bufsize = pending_bits;
 }
 
 void outs_flush(struct outstream* outs)
@@ -66,12 +74,9 @@ void outs_flush(struct outstream* outs)
         return;
     }
 
-    // zero out garbage bits from buffer
-    uint32_t mask = (~0 >> outs->bufsize);
-    outs->buffer &= mask;
+    (outs->write)(outs->buffer, outs->context);
 
-    (outs->write)(outs->buffer);
-
+    outs->buffer = '\0';
     outs->bufsize = 0;
     ++outs->outcount;
 }
