@@ -12,7 +12,7 @@ struct params {
     void* context;
 };
 
-static bool verify_params(struct params* p) {
+static bool verify_params(struct params const* p) {
     return p->current_bits >= LZW_MINIMUM_BITS
         && p->max_bits <= LZW_MAXIMUM_BITS
         && p->read != NULL
@@ -24,7 +24,7 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         void (*write_char)(unsigned char c, void* context),
         void* context)
 {
-    struct params p = {
+    struct params const p = {
         .current_bits = start_bits,
         .max_bits = max_bits,
         .read = read_byte,
@@ -53,7 +53,7 @@ bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
         void (*write_char)(unsigned char c, void* context),
         void* context)
 {
-    struct params p = {
+    struct params const p = {
         .current_bits = start_bits,
         .max_bits = max_bits,
         .read = read_byte,
