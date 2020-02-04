@@ -82,7 +82,7 @@ profile: CFLAGS += -pg
 profile: all
 
 tests: CFLAGS += -UNDEBUG -Wno-error
-tests: paths test-trie test-outstream
+tests: paths test-trie test-outstream test-instream
 
 # default rule for test file -- no object dependencies
 # and outputs executable in $(BUILD_DIR)/tests
