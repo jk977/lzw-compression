@@ -30,9 +30,9 @@ struct outstream* outs_init(void* context,
     outs->write = write_byte;
     outs->context = context;
 
-    outs->outcount = 0;
     outs->buffer = 0;
     outs->bufsize = 0;
+    outs->outcount = 0;
 
     return outs;
 }
