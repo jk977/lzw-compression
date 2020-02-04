@@ -18,7 +18,8 @@ struct outstream {
 /*
  * outs_init: Initialize an output bitstream on the heap.
  */
-struct outstream* outs_init(void (*write_byte)(unsigned char c, void* context))
+struct outstream* outs_init(void* context,
+        void (*write_byte)(unsigned char c, void* context))
 {
     struct outstream* outs = malloc(sizeof(*outs));
 
@@ -29,7 +30,7 @@ struct outstream* outs_init(void (*write_byte)(unsigned char c, void* context))
     outs->write = write_byte;
     outs->context = context;
 
-    outs->bytes_written = 0;
+    outs->outcount = 0;
     outs->buffer = 0;
     outs->bufsize = 0;
 
@@ -41,6 +42,7 @@ struct outstream* outs_init(void (*write_byte)(unsigned char c, void* context))
  */
 void outs_destroy(struct outstream* outs)
 {
+    outs_flush(outs);
     free(outs);
 }
 
@@ -60,7 +62,7 @@ void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
 
         // ensure that outs->buffer and bits don't contain garbage by
         // zeroing unimportant bits
-        unsigned char const upper_mask = (~0 << lower_size);
+        unsigned char const upper_mask = ~0u << lower_size;
         unsigned char const lower_mask = ~upper_mask;
 
         // put the old buffer bits into the upper part of the output,
@@ -77,9 +79,10 @@ void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
         bits >>= lower_size;
     }
 
-    if (pending_bits >= 0) {
+    if (pending_bits > 0) {
         // store remaining bits in buffer, adding trailing zeroes
-        outs->buffer = (bits << CHAR_BIT - pending_bits);
+
+        outs->buffer = bits << (CHAR_BIT - pending_bits);
     }
 
     outs->bufsize = pending_bits;

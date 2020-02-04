@@ -82,7 +82,7 @@ profile: CFLAGS += -pg
 profile: all
 
 tests: CFLAGS += -UNDEBUG
-tests: paths test-trie
+tests: paths test-trie test-outstream
 
 # default rule for test file -- no object dependencies
 # and outputs executable in $(BUILD_DIR)/tests
