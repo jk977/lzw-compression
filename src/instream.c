@@ -160,11 +160,9 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
     }
 
     if (result != EOF) {
-        // right-align result before returning to make it
-        // function properly with variable-width codes
-        uint32_t copy = result;
-        copy >>= (BITS_IN(result) + bits_remaining - bit_count);
-        result = copy;
+        // right-align result
+        size_t const shift_distance = BITS_IN(result) + bits_remaining - bit_count;
+        result = (uint32_t) result >> shift_distance;
     }
 
     return result;
