@@ -59,11 +59,12 @@ void test_bits(struct instream* ins) {
     unsigned char current = 0;
 
     while ((c = ins_read_bits(ins, 1)) != EOF) {
-        unsigned int const current_bit = count % 8;
-        current |= c << (8 - current_bit);
+        unsigned int const current_bit = 7 - count % 8;
+        current |= c << current_bit;
 
-        if (current_bit == 7) {
+        if (current_bit == 0) {
             putchar(current);
+            current = 0;
         }
 
         ++count;
@@ -92,11 +93,9 @@ int main(void)
     rewind(stream);
     fflush(stdout);
 
-#if 0
     test_bits(ins);
     rewind(stream);
     fflush(stdout);
-#endif
 
     ins_destroy(ins);
     fclose(stream);

@@ -61,7 +61,7 @@ static void insert_buffer(struct instream* ins, unsigned char byte)
     ins->bufsize += CHAR_BIT;
 }
 
-static int32_t get_next_from_buffer(struct instream* ins, size_t bit_count)
+static int32_t drain_buffer(struct instream* ins, size_t bit_count)
 {
     if (ins->bufsize < bit_count) {
         return EOF;
@@ -104,7 +104,7 @@ static int32_t insert_buffer_with_overflow(struct instream* ins, unsigned char b
     ins->buffer |= used_bits << used_bit_padding;
     ins->bufsize += used_bits_count;
 
-    int32_t result = get_next_from_buffer(ins, bit_count);
+    int32_t result = drain_buffer(ins, bit_count);
 
     ins->buffer |= unused_bits >> ins->bufsize;
     ins->bufsize += unused_bits_count;
@@ -112,17 +112,19 @@ static int32_t insert_buffer_with_overflow(struct instream* ins, unsigned char b
     return result;
 }
 
-static int32_t add_to_buffer(struct instream* ins, unsigned char byte, size_t bit_count)
+static size_t add_to_buffer(struct instream* ins, int32_t* result, unsigned char byte, size_t bit_count)
 {
-    int32_t result = EOF;
+    size_t bits_added;
 
     if (bit_count > ins->bufsize + CHAR_BIT) {
+        bits_added = CHAR_BIT;
         insert_buffer(ins, byte);
     } else {
-        result = insert_buffer_with_overflow(ins, byte, bit_count);
+        bits_added = bit_count - ins->bufsize;
+        *result = insert_buffer_with_overflow(ins, byte, bit_count);
     }
 
-    return result;
+    return bits_added;
 }
 
 /*
@@ -137,7 +139,10 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
     }
 
     int32_t result = EOF;
-    size_t bits_remaining = bit_count - ins->bufsize;
+
+    size_t bits_remaining = (bit_count >= ins->bufsize) ?
+        bit_count - ins->bufsize :
+        0;
 
     while (bits_remaining > 0) {
         int next = (ins->read)(ins->context);
@@ -147,16 +152,12 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
             break;
         }
 
-        if ((result = add_to_buffer(ins, next, bit_count)) == EOF) {
-            bits_remaining -= CHAR_BIT;
-        } else {
-            bits_remaining = 0;
-        }
+        bits_remaining -= add_to_buffer(ins, &result, next, bit_count);
     }
 
     if (result == EOF) {
         // take the rest from the buffer if the end is reached
-        result = get_next_from_buffer(ins, bit_count);
+        result = drain_buffer(ins, bit_count);
     }
 
     if (result != EOF) {
