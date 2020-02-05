@@ -126,19 +126,16 @@ static int32_t add_to_buffer(struct instream* ins, unsigned char byte, size_t bi
 }
 
 /*
- * ins_read_bits: Read the given number of bits.
+ * ins_read_bits: Return the given number of bits from the input stream.
+ *                If bit_count is 0 or greater than the space allowed by
+ *                the internal buffer, returns EOF.
  */
 int32_t ins_read_bits(struct instream* ins, size_t bit_count)
 {
-    if (bit_count == 0) {
-        // do nothing when asked to read 0 bits
-        return EOF;
-    } else if (bit_count > BITS_IN(ins->buffer)) {
-        // impossible to return more bits than space allows
+    if (bit_count == 0 || bit_count > BITS_IN(ins->buffer)) {
         return EOF;
     }
 
-    // start result at EOF if nothing in buffer
     int32_t result = EOF;
     size_t bits_remaining = bit_count - ins->bufsize;
 
@@ -150,9 +147,7 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
             break;
         }
 
-        result = add_to_buffer(ins, next, bit_count);
-
-        if (result == EOF) {
+        if ((result = add_to_buffer(ins, next, bit_count)) == EOF) {
             bits_remaining -= CHAR_BIT;
         } else {
             bits_remaining = 0;
@@ -168,7 +163,7 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
         // right-align result before returning to make it
         // function properly with variable-width codes
         uint32_t copy = result;
-        copy >>= (BITS_IN(result) - bit_count);
+        copy >>= (BITS_IN(result) + bits_remaining - bit_count);
         result = copy;
     }
 
