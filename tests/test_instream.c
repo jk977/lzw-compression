@@ -7,7 +7,7 @@
 #include <limits.h>
 #include <string.h>
 
-static char const* filename = "foo.txt";
+static char const* default_file = "default-instream.txt";
 
 static int read_file(void* context)
 {
@@ -112,10 +112,10 @@ static void test_file(char const* path,
 
 int main(void)
 {
-    test_file(filename, test_large);
-    test_file(filename, test_bytes);
-    test_file(filename, test_small);
-    test_file(filename, test_bits);
+    test_file(default_file, test_large);
+    test_file(default_file, test_bytes);
+    test_file(default_file, test_small);
+    test_file(default_file, test_bits);
 
     test_file("odd.txt", test_odd);
     test_file("vary.txt", test_vary);
