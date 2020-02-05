@@ -9,13 +9,13 @@
 
 static char const* filename = "foo.txt";
 
-int read_file(void* context)
+static int read_file(void* context)
 {
     FILE* stream = context;
     return fgetc(stream);
 }
 
-void test_large(struct instream* ins) {
+static void test_large(struct instream* ins) {
     int32_t c;
     size_t const read_size = 16;
 
@@ -28,7 +28,7 @@ void test_large(struct instream* ins) {
     }
 }
 
-void test_bytes(struct instream* ins) {
+static void test_bytes(struct instream* ins) {
     int32_t c;
 
     while ((c = ins_read_bits(ins, 8)) != EOF) {
@@ -36,7 +36,7 @@ void test_bytes(struct instream* ins) {
     }
 }
 
-void test_small(struct instream* ins) {
+static void test_small(struct instream* ins) {
     int32_t c;
     size_t count = 0;
     unsigned char current = 0;
@@ -53,7 +53,7 @@ void test_small(struct instream* ins) {
     }
 }
 
-void test_bits(struct instream* ins) {
+static void test_bits(struct instream* ins) {
     int32_t c;
     size_t count = 0;
     unsigned char current = 0;
@@ -71,7 +71,7 @@ void test_bits(struct instream* ins) {
     }
 }
 
-void test_odd(struct instream* ins) {
+static void test_odd(struct instream* ins) {
     int32_t c;
     size_t count = 0;
 
@@ -83,7 +83,7 @@ void test_odd(struct instream* ins) {
     puts("");
 }
 
-void test_varying(struct instream* ins) {
+static void test_vary(struct instream* ins) {
     int32_t c;
     size_t read_size = 1;
 
@@ -95,51 +95,30 @@ void test_varying(struct instream* ins) {
     puts("");
 }
 
-int main(void)
+static void test_file(char const* path,
+        void (*tester)(struct instream*))
 {
-    FILE* large_stream = fopen(filename, "r");
-    FILE* bytes_stream = fopen(filename, "r");
-    FILE* small_stream = fopen(filename, "r");
-    FILE* bits_stream = fopen(filename, "r");
-    FILE* odd_stream = fopen("odd.txt", "r");
-    FILE* vary_stream = fopen("odd.txt", "r");
+    FILE* stream = fopen(path, "r");
+    struct instream* ins = ins_init(stream, read_file);
 
-    if (large_stream == NULL
-            || bytes_stream == NULL
-            || small_stream == NULL
-            || bits_stream == NULL
-            || odd_stream == NULL
-            || vary_stream == NULL) {
-        return EXIT_FAILURE;
+    if (stream == NULL || ins == NULL) {
+        exit(EXIT_FAILURE);
     }
 
-    struct instream* bytes_ins = ins_init(bytes_stream, read_file);
-    struct instream* large_ins = ins_init(large_stream, read_file);
-    struct instream* small_ins = ins_init(small_stream, read_file);
-    struct instream* bits_ins = ins_init(bits_stream, read_file);
-    struct instream* odd_ins = ins_init(odd_stream, read_file);
-    struct instream* vary_ins = ins_init(vary_stream, read_file);
+    tester(ins);
+    ins_destroy(ins);
+    fclose(stream);
+}
 
-    test_large(large_ins);
-    test_bytes(bytes_ins);
-    test_small(small_ins);
-    test_bits(bits_ins);
-    test_odd(odd_ins);
-    test_odd(vary_ins);
+int main(void)
+{
+    test_file(filename, test_large);
+    test_file(filename, test_bytes);
+    test_file(filename, test_small);
+    test_file(filename, test_bits);
 
-    ins_destroy(vary_ins);
-    ins_destroy(odd_ins);
-    ins_destroy(bits_ins);
-    ins_destroy(small_ins);
-    ins_destroy(bytes_ins);
-    ins_destroy(large_ins);
-
-    fclose(vary_stream);
-    fclose(odd_stream);
-    fclose(bits_stream);
-    fclose(small_stream);
-    fclose(bytes_stream);
-    fclose(large_stream);
+    test_file("odd.txt", test_odd);
+    test_file("vary.txt", test_vary);
 
     return EXIT_SUCCESS;
 }
