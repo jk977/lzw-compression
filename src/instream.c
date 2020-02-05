@@ -61,7 +61,12 @@ static void insert_buffer(struct instream* ins, unsigned char byte)
     ins->bufsize += CHAR_BIT;
 }
 
-static int32_t drain_buffer(struct instream* ins, size_t bit_count)
+/*
+ * flush_buffer: If the buffer holds at least bit_count bits,
+ *               collects the data stored in the buffer, clears the buffer,
+ *               and returns the data. Returns EOF otherwise.
+ */
+static int32_t flush_buffer(struct instream* ins, size_t bit_count)
 {
     if (ins->bufsize < bit_count) {
         return EOF;
@@ -77,7 +82,7 @@ static int32_t drain_buffer(struct instream* ins, size_t bit_count)
 }
 
 /*
- * insert_buffer_with_overflow: Same as insert_buffer but assuming an overflow.
+ * insert_buffer_with_overflow: Inserts data into the buffer, flushes, and returns the completed data.
  */
 static int32_t insert_buffer_with_overflow(struct instream* ins, unsigned char byte, size_t bit_count)
 {
@@ -104,7 +109,7 @@ static int32_t insert_buffer_with_overflow(struct instream* ins, unsigned char b
     ins->buffer |= used_bits << used_bit_padding;
     ins->bufsize += used_bits_count;
 
-    int32_t result = drain_buffer(ins, bit_count);
+    int32_t result = flush_buffer(ins, bit_count);
 
     ins->buffer |= unused_bits >> ins->bufsize;
     ins->bufsize += unused_bits_count;
@@ -112,6 +117,11 @@ static int32_t insert_buffer_with_overflow(struct instream* ins, unsigned char b
     return result;
 }
 
+/*
+ * add_to_buffer: Adds the byte to the input stream buffer. If enough bits are
+ *                collected, flush the buffer and store the resulting bits in *result.
+ *                Returns the number of bits added to the buffer.
+ */
 static size_t add_to_buffer(struct instream* ins, int32_t* result, unsigned char byte, size_t bit_count)
 {
     size_t bits_added;
@@ -140,6 +150,7 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
 
     int32_t result = EOF;
 
+    // avoid overflow caused by storing negatives in an unsigned integer type.
     size_t bits_remaining = (bit_count >= ins->bufsize) ?
         bit_count - ins->bufsize :
         0;
@@ -156,12 +167,12 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
     }
 
     if (result == EOF) {
-        // take the rest from the buffer if the end is reached
-        result = drain_buffer(ins, bit_count);
+        // take the rest from the buffer if the end of input is reached
+        result = flush_buffer(ins, bit_count);
     }
 
     if (result != EOF) {
-        // right-align result
+        // right-align result before returning
         size_t const shift_distance = BITS_IN(result) + bits_remaining - bit_count;
         result = (uint32_t) result >> shift_distance;
     }
