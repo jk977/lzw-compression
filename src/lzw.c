@@ -39,6 +39,9 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
     int byte = 0;
     char next_output = '\0';
 
+    unsigned int current_bits = start_bits;
+    code_t next_code = 0;
+
     while ((byte = read_byte(context)) != EOF) {
         // TODO: generate sequence of codes and write them 1 byte at a time
         next_output = byte;
