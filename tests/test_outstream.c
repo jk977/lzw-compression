@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include <limits.h>
 #include <string.h>
@@ -15,7 +16,20 @@ void write_file(unsigned char c, void* context)
     fputc(c, stream);
 }
 
-void test_chars(struct outstream* outs) {
+void test_large(struct outstream* outs)
+{
+    uint16_t content[] = { 0b0111101110110111, 0b1100000011101111 };
+    size_t const write_size = 16;
+
+    // expected write: 10110111 01111011 11101111 11000000
+    // least-significant byte is written first, then most significant byte
+    for (size_t i = 0; i < sizeof(content) / sizeof(content[0]); ++i) {
+        outs_write_bits(outs, content[i], write_size);
+    }
+}
+
+void test_bytes(struct outstream* outs)
+{
     char const* content = "foobarbaz\n";
 
     for (size_t i = 0; i < strlen(content); ++i) {
@@ -26,7 +40,7 @@ void test_chars(struct outstream* outs) {
 void test_bits(struct outstream* outs)
 {
     unsigned char content[] = { 'a', '\n' };
-    size_t write_size = 2; // bits at a time
+    size_t write_size = 2;
 
     for (size_t i = 0; i < sizeof(content) / sizeof(content[0]); ++i) {
         unsigned char current = content[i];
@@ -66,7 +80,9 @@ static void test_file(char const* path,
 
 int main(void)
 {
-    test_file(default_file, test_bits);
+    test_file("a.txt", test_large);
+    test_file("b.txt", test_bytes);
+    test_file("c.txt", test_bits);
 
     return EXIT_SUCCESS;
 }

@@ -71,9 +71,8 @@ void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
         outs_flush(outs);
 
         // update information about the remaining bits.
-        // note: bitshifting signed integers is technically undefined behavior.
         bits_pending -= CHAR_BIT;
-        bits >>= lower_size;
+        bits = (unsigned int) bits >> lower_size;
     }
 
     // store remaining bits in buffer, adding trailing zeroes.
