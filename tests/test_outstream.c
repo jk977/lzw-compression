@@ -7,7 +7,7 @@
 #include <limits.h>
 #include <string.h>
 
-static char const* filename = "foo.txt";
+static char const* default_file = "foo.txt";
 
 void write_file(unsigned char c, void* context)
 {
@@ -48,19 +48,25 @@ void test_bits(struct outstream* outs)
     }
 }
 
-int main(void)
+static void test_file(char const* path,
+        void (*tester)(struct outstream*))
 {
-    FILE* stream = fopen(filename, "w");
-
-    if (stream == NULL) {
-        return EXIT_FAILURE;
-    }
-
+    FILE* stream = fopen(path, "w");
     struct outstream* outs = outs_init(stream, write_file);
 
-    test_bits(outs);
+    if (stream == NULL || outs == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    tester(outs);
+
     outs_destroy(outs);
     fclose(stream);
+}
+
+int main(void)
+{
+    test_file(default_file, test_bits);
 
     return EXIT_SUCCESS;
 }
