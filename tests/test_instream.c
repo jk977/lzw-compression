@@ -48,6 +48,8 @@ void test_small(struct instream* ins) {
             current |= c;
             putchar(current);
         }
+
+        ++count;
     }
 }
 
@@ -63,6 +65,8 @@ void test_bits(struct instream* ins) {
         if (current_bit == 7) {
             putchar(current);
         }
+
+        ++count;
     }
 }
 
@@ -84,11 +88,11 @@ int main(void)
     rewind(stream);
     fflush(stdout);
 
-#if 0
     test_small(ins);
     rewind(stream);
     fflush(stdout);
 
+#if 0
     test_bits(ins);
     rewind(stream);
     fflush(stdout);

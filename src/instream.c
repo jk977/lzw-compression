@@ -63,9 +63,11 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
         return EOF;
     }
 
+    // start result at EOF if nothing in buffer
     int32_t result = EOF;
+    size_t bits_remaining = bit_count - ins->bufsize;
 
-    while (result == EOF) {
+    while (bits_remaining > 0) {
         int next = (ins->read)(ins->context);
 
         if (next == EOF) {
@@ -81,31 +83,51 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
             size_t const shift_distance = BITS_IN(ins->buffer) - ins->bufsize - CHAR_BIT;
             ins->buffer |= next_byte << shift_distance;
             ins->bufsize += CHAR_BIT;
+            bits_remaining -= CHAR_BIT;
         } else {
-            // enough bits have been read for the result
-            size_t const used_bit_count = bit_count - ins->bufsize;
-            size_t const unused_bit_count = ins->bufsize + CHAR_BIT - bit_count;
+            // enough bits have been read for the buffer to fill
 
-            unsigned char const overflow_mask = (unsigned char) ~0u >> used_bit_count;
+            // extract the used and unused (overflow) bits
+            // in a right-aligned 0-padded 32-bit space
+            unsigned char const ones = (unsigned char) ~0u;
+            unsigned char const overflow_mask = ones >> (bit_count - ins->bufsize);
 
-            // extract the used and unused (overflow) bits in a 0-padded 32-bit space
-            int32_t used_bits = (int32_t) (next_byte & ~overflow_mask);
-            int32_t unused_bits = (int32_t) (next_byte & overflow_mask);
+            uint32_t used_bits = (int32_t) (next_byte & ~overflow_mask);
+            uint32_t unused_bits = (int32_t) (next_byte & overflow_mask);
 
-            // number of bits padding the original byte
-            size_t const empty_count = BITS_IN(ins->buffer) - CHAR_BIT;
+            // how much to pad the used and unused bits on the right when shifting them
+            size_t const used_bit_padding = BITS_IN(ins->buffer) - ins->bufsize - CHAR_BIT;
+            size_t const unused_bit_padding = BITS_IN(ins->buffer) + bit_count - ins->bufsize - CHAR_BIT;
 
-            // align used_bits to end of buffer data, and unused_bits to the very left
-            used_bits <<= (empty_count - ins->bufsize);
-            unused_bits <<= empty_count;
+            // align with the end of buffer data
+            used_bits <<= used_bit_padding;
 
-            // combine buffer and used bits, then right-align the result
+            // align to the very left and avoid runtime errors
+            // caused by shifting n-bit integers by n bits
+            if (unused_bit_padding >= BITS_IN(unused_bits)) {
+                unused_bits = 0;
+            } else {
+                unused_bits <<= unused_bit_padding;
+            }
+
+            // combine buffer and used bits
             result = ins->buffer | used_bits;
-            result >>= (BITS_IN(result) - bit_count);
-
             ins->buffer = unused_bits;
-            ins->bufsize = unused_bit_count;
+            ins->bufsize += CHAR_BIT - bit_count;
+
+            bits_remaining = 0;
         }
+    }
+
+    if (result != EOF) {
+        // right-align result before returning to make it
+        // function properly with variable-width codes
+        result >>= (BITS_IN(result) - bit_count);
+    } else if (ins->bufsize > 0) {
+        // take the rest from the buffer if the end is reached
+        result = ins->buffer >> (BITS_IN(result) - ins->bufsize);
+        ins->buffer = 0;
+        ins->bufsize = 0;
     }
 
     return result;
