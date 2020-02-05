@@ -61,25 +61,36 @@ static void insert_buffer(struct instream* ins, unsigned char byte)
     ins->bufsize += CHAR_BIT;
 }
 
+static int32_t get_next_from_buffer(struct instream* ins, size_t bit_count)
+{
+    if (ins->bufsize < bit_count) {
+        return EOF;
+    }
+
+    uint32_t const mask = ~0u << (BITS_IN(ins->buffer) - bit_count);
+    uint32_t result = ins->buffer & mask;
+
+    ins->buffer <<= bit_count;
+    ins->bufsize -= bit_count;
+
+    return result;
+}
+
 /*
  * insert_buffer_with_overflow: Same as insert_buffer but assuming an overflow.
  */
 static int32_t insert_buffer_with_overflow(struct instream* ins, unsigned char byte, size_t bit_count)
 {
-    // extract the used and unused (overflow) bits
-    // in a right-aligned 0-padded 32-bit space
-    unsigned char const ones = (unsigned char) ~0u;
-    unsigned char const overflow_mask = ones >> (bit_count - ins->bufsize);
+    // extract the used and unused bits in a right-aligned 0-padded 32-bit space
+    unsigned char const overflow_mask = (unsigned char) ~0u >> (bit_count - ins->bufsize);
 
     uint32_t used_bits = (int32_t) (byte & ~overflow_mask);
-    uint32_t unused_bits = (int32_t) (byte & overflow_mask);
-
-    // how much to pad the used and unused bits on the right when shifting them
+    size_t const used_bits_count = bit_count - ins->bufsize;
     size_t const used_bit_padding = BITS_IN(ins->buffer) - ins->bufsize - CHAR_BIT;
-    size_t const unused_bit_padding = BITS_IN(ins->buffer) + bit_count - ins->bufsize - CHAR_BIT;
 
-    // align with the end of buffer data
-    used_bits <<= used_bit_padding;
+    uint32_t unused_bits = (int32_t) (byte & overflow_mask);
+    size_t const unused_bits_count = CHAR_BIT - used_bits_count;
+    size_t const unused_bit_padding = BITS_IN(ins->buffer) - unused_bits_count;
 
     // align to the very left and avoid runtime errors
     // caused by shifting n-bit integers by n bits
@@ -90,9 +101,26 @@ static int32_t insert_buffer_with_overflow(struct instream* ins, unsigned char b
     }
 
     // combine buffer and used bits
-    int32_t result = ins->buffer | used_bits;
-    ins->buffer = unused_bits;
-    ins->bufsize += CHAR_BIT - bit_count;
+    ins->buffer |= used_bits << used_bit_padding;
+    ins->bufsize += used_bits_count;
+
+    int32_t result = get_next_from_buffer(ins, bit_count);
+
+    ins->buffer |= unused_bits >> ins->bufsize;
+    ins->bufsize += unused_bits_count;
+
+    return result;
+}
+
+static int32_t add_to_buffer(struct instream* ins, unsigned char byte, size_t bit_count)
+{
+    int32_t result = EOF;
+
+    if (bit_count > ins->bufsize + CHAR_BIT) {
+        insert_buffer(ins, byte);
+    } else {
+        result = insert_buffer_with_overflow(ins, byte, bit_count);
+    }
 
     return result;
 }
@@ -122,24 +150,26 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
             break;
         }
 
-        if (bit_count > ins->bufsize + CHAR_BIT) {
-            insert_buffer(ins, next);
+        result = add_to_buffer(ins, next, bit_count);
+
+        if (result == EOF) {
             bits_remaining -= CHAR_BIT;
         } else {
-            result = insert_buffer_with_overflow(ins, next, bit_count);
             bits_remaining = 0;
         }
+    }
+
+    if (result == EOF) {
+        // take the rest from the buffer if the end is reached
+        result = get_next_from_buffer(ins, bit_count);
     }
 
     if (result != EOF) {
         // right-align result before returning to make it
         // function properly with variable-width codes
-        result >>= (BITS_IN(result) - bit_count);
-    } else if (ins->bufsize > 0) {
-        // take the rest from the buffer if the end is reached
-        result = ins->buffer >> (BITS_IN(result) - ins->bufsize);
-        ins->buffer = 0;
-        ins->bufsize = 0;
+        uint32_t copy = result;
+        copy >>= (BITS_IN(result) - bit_count);
+        result = copy;
     }
 
     return result;
