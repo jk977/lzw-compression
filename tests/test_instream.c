@@ -15,7 +15,20 @@ int read_file(void* context)
     return fgetc(stream);
 }
 
-void test_chars(struct instream* ins) {
+void test_large(struct instream* ins) {
+    int32_t c;
+    size_t const read_size = 16;
+
+    while ((c = ins_read_bits(ins, read_size)) != EOF) {
+        unsigned char const first = c >> 8;
+        unsigned char const second = c;
+
+        putchar(first);
+        putchar(second);
+    }
+}
+
+void test_bytes(struct instream* ins) {
     int32_t c;
 
     while ((c = ins_read_bits(ins, 8)) != EOF) {
@@ -23,16 +36,33 @@ void test_chars(struct instream* ins) {
     }
 }
 
+void test_small(struct instream* ins) {
+    int32_t c;
+    size_t count = 0;
+    unsigned char current = 0;
+
+    while ((c = ins_read_bits(ins, 4)) != EOF) {
+        if (count % 2 == 0) {
+            current = c << 4;
+        } else {
+            current |= c;
+            putchar(current);
+        }
+    }
+}
+
 void test_bits(struct instream* ins) {
     int32_t c;
-    size_t const read_size = 16;
+    size_t count = 0;
+    unsigned char current = 0;
 
-    while ((c = ins_read_bits(ins, read_size)) != EOF) {
-        unsigned char const first = c >> 24;
-        unsigned char const second = c >> 16;
+    while ((c = ins_read_bits(ins, 1)) != EOF) {
+        unsigned int const current_bit = count % 8;
+        current |= c << (8 - current_bit);
 
-        putchar(first);
-        putchar(second);
+        if (current_bit == 7) {
+            putchar(current);
+        }
     }
 }
 
@@ -46,7 +76,23 @@ int main(void)
 
     struct instream* ins = ins_init(stream, read_file);
 
+    test_bytes(ins);
+    rewind(stream);
+    fflush(stdout);
+
+    test_large(ins);
+    rewind(stream);
+    fflush(stdout);
+
+#if 0
+    test_small(ins);
+    rewind(stream);
+    fflush(stdout);
+
     test_bits(ins);
+    rewind(stream);
+    fflush(stdout);
+#endif
 
     ins_destroy(ins);
     fclose(stream);

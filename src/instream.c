@@ -15,7 +15,7 @@ struct instream {
     void* context;
 
     uint32_t buffer;
-    uint8_t bufsize;
+    size_t bufsize;
 
     uint32_t incount;
 };
@@ -63,64 +63,49 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
         return EOF;
     }
 
-    ssize_t bits_remaining = bit_count - ins->bufsize;
-    int32_t result = ins->buffer;
+    int32_t result = EOF;
 
-    while (bits_remaining > 0) {
+    while (result == EOF) {
         int next = (ins->read)(ins->context);
 
         if (next == EOF) {
             // no more data to be read; exit loop early
-            if (bits_remaining == (ssize_t) bit_count) {
-                result = EOF;
-            }
-
             break;
         }
 
         // assume ins->read returns 1 byte at a time, or EOF on error
         unsigned char const next_byte = next;
 
-        // check if enough bits have been read for the result
-        if (bits_remaining <= (ssize_t) BITS_IN(next_byte)) {
-            // extract the bits to be stored in the buffer, zeroing the rest
-            size_t const new_bits_shift = BITS_IN(next_byte) - bits_remaining;
-            unsigned char const new_bits = next_byte << new_bits_shift;
-
-            // extract the overflow bits, zeroing the rest
-            size_t const overflow_shift = BITS_IN(ins->buffer) + BITS_IN(next_byte) - bits_remaining;
-            unsigned char const overflow_mask = ~0u >> bits_remaining;
-            unsigned char const overflow_bits = next_byte & overflow_mask;
-
-            // find out how much the new bits need to be shifted
-            // to align with the rest of the data in the buffer
-            size_t const new_shift = BITS_IN(ins->buffer)
-                - BITS_IN(next_byte)
-                - bit_count + bits_remaining;
-
-            // combine the buffer and new bits into the result
-            // and store the aligned overflow bits in the buffer
-            result = ins->buffer | (new_bits << new_shift);
-
-            // avoid runtime errors caused by
-            // shifting an n-bit integer by n
-            if (BITS_IN(ins->buffer) >= overflow_shift) {
-                ins->buffer = 0;
-            } else {
-                ins->buffer = overflow_bits << overflow_shift;
-            }
-
-            ins->bufsize = BITS_IN(next_byte) - bits_remaining;
-        } else {
-            size_t const shift_distance = BITS_IN(ins->buffer)
-                - ins->bufsize
-                - BITS_IN(next_byte);
-
+        if (bit_count > ins->bufsize + CHAR_BIT) {
+            // continue adding to buffer without emptying
+            size_t const shift_distance = BITS_IN(ins->buffer) - ins->bufsize - CHAR_BIT;
             ins->buffer |= next_byte << shift_distance;
-            ins->bufsize += BITS_IN(next_byte);
-        }
+            ins->bufsize += CHAR_BIT;
+        } else {
+            // enough bits have been read for the result
+            size_t const used_bit_count = bit_count - ins->bufsize;
+            size_t const unused_bit_count = ins->bufsize + CHAR_BIT - bit_count;
 
-        bits_remaining -= BITS_IN(next_byte);
+            unsigned char const overflow_mask = (unsigned char) ~0u >> used_bit_count;
+
+            // extract the used and unused (overflow) bits in a 0-padded 32-bit space
+            int32_t used_bits = (int32_t) (next_byte & ~overflow_mask);
+            int32_t unused_bits = (int32_t) (next_byte & overflow_mask);
+
+            // number of bits padding the original byte
+            size_t const empty_count = BITS_IN(ins->buffer) - CHAR_BIT;
+
+            // align used_bits to end of buffer data, and unused_bits to the very left
+            used_bits <<= (empty_count - ins->bufsize);
+            unused_bits <<= empty_count;
+
+            // combine buffer and used bits, then right-align the result
+            result = ins->buffer | used_bits;
+            result >>= (BITS_IN(result) - bit_count);
+
+            ins->buffer = unused_bits;
+            ins->bufsize = unused_bit_count;
+        }
     }
 
     return result;
