@@ -104,7 +104,28 @@ char* seq_to_str(struct sequence const* seq)
 
 int seq_cmp(struct sequence const* lhs, struct sequence const* rhs)
 {
-    return strcmp(seq_to_str(lhs), seq_to_str(rhs));
+    if (lhs == NULL || rhs == NULL) {
+        return -1;
+    }
+
+    while (lhs != NULL && rhs != NULL) {
+        if (lhs->entry < rhs->entry) {
+            return -1;
+        } else if (lhs->entry > rhs->entry) {
+            return 1;
+        }
+
+        lhs = lhs->next;
+        rhs = rhs->next;
+    }
+
+    if (lhs == NULL && rhs == NULL) {
+        return 0;
+    } else if (lhs == NULL) {
+        return -1;
+    } else {
+        return 1;
+    }
 }
 
 bool seq_equals(struct sequence const* lhs, struct sequence const* rhs)
