@@ -41,26 +41,16 @@ void test_bytes(struct outstream* outs)
 
 void test_bits(struct outstream* outs)
 {
-    unsigned char content[] = { 'a', '\n' };
+    unsigned char content[] = {
+        0b01, 0b10, 0b00, 0b01,
+        0b00, 0b00, 0b10, 0b10
+    };
+
     size_t write_size = 2;
 
+    // expected output: "a\n"
     FOREACH(i, content) {
-        unsigned char current = content[i];
-        size_t written = 0;
-
-        while (written < CHAR_BIT) {
-            size_t actual_size = write_size;
-
-            if (written + write_size > CHAR_BIT) {
-                actual_size = CHAR_BIT - written;
-            }
-
-            outs_write_bits(outs, current, actual_size);
-            current <<= write_size;
-            written += write_size;
-        }
-
-        ++write_size;
+        outs_write_bits(outs, content[i], write_size);
     }
 }
 

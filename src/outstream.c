@@ -1,4 +1,5 @@
 #include "outstream.h"
+#include "bitops.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -9,7 +10,7 @@ struct outstream {
     void (*write)(unsigned char, void*);
     void* context;
 
-    unsigned char buffer;
+    uint32_t buffer;
     uint8_t bufsize;
 
     uint32_t outcount;
@@ -52,8 +53,12 @@ void outs_destroy(struct outstream* outs)
  *                  the given bits before writing. Any amount of bits under
  *                  CHAR_BIT are kept in the buffer for the next write.
  */
-void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
+void outs_write_bits(struct outstream* outs, uint32_t bits, size_t bit_count)
 {
+    if (bit_count > BITS_IN(bits)) {
+        return;
+    }
+
     size_t bits_pending = bit_count + outs->bufsize;
 
     while (bits_pending >= CHAR_BIT) {
@@ -64,7 +69,11 @@ void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
         // and the parameter bits into the lower part, as specified by
         // the assignment description
         unsigned char const upper = outs->buffer & (~0u << lower_size);
-        unsigned char const lower = bits >> outs->bufsize;
+        size_t const lower_padding = (bit_count > CHAR_BIT) ?
+            bit_count - CHAR_BIT :
+            0;
+
+        unsigned char const lower = bits >> lower_padding;
 
         outs->buffer = upper | lower;
         outs->bufsize = CHAR_BIT;
@@ -72,16 +81,18 @@ void outs_write_bits(struct outstream* outs, int bits, size_t bit_count)
 
         // update information about the remaining bits.
         bits_pending -= CHAR_BIT;
-        bits = (unsigned int) bits >> lower_size;
+        bits <<= lower_size;
     }
 
     // store remaining bits in buffer, adding trailing zeroes.
     // if no bits remain, buffer will be 0.
-    unsigned char const mask = ~0u << (CHAR_BIT - bits_pending + outs->bufsize);
-    unsigned char const remaining = bits & mask;
+    if (bits_pending > 0) {
+        unsigned char const mask = ~0u >> (BITS_IN(bits) - bit_count);
+        unsigned char const remaining = bits & mask;
 
-    outs->buffer |= remaining >> outs->bufsize;
-    outs->bufsize = bits_pending;
+        outs->buffer |= remaining << (CHAR_BIT - outs->bufsize - bit_count);
+        outs->bufsize += bit_count;
+    }
 }
 
 /*

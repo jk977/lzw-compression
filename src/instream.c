@@ -1,4 +1,5 @@
 #include "instream.h"
+#include "bitops.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -7,8 +8,6 @@
 #include <limits.h>
 
 #include <sys/types.h>
-
-#define BITS_IN(x) (CHAR_BIT * sizeof(x))
 
 struct instream {
     int (*read)(void*);
@@ -89,11 +88,11 @@ static int32_t insert_buffer_with_overflow(struct instream* ins, unsigned char b
     // extract the used and unused bits in a right-aligned 0-padded 32-bit space
     unsigned char const overflow_mask = (unsigned char) ~0u >> (bit_count - ins->bufsize);
 
-    uint32_t used_bits = (int32_t) (byte & ~overflow_mask);
+    uint32_t used_bits = (uint32_t) (byte & ~overflow_mask);
     size_t const used_bits_count = bit_count - ins->bufsize;
     size_t const used_bit_padding = BITS_IN(ins->buffer) - ins->bufsize - CHAR_BIT;
 
-    uint32_t unused_bits = (int32_t) (byte & overflow_mask);
+    uint32_t unused_bits = (uint32_t) (byte & overflow_mask);
     size_t const unused_bits_count = CHAR_BIT - used_bits_count;
     size_t const unused_bit_padding = BITS_IN(ins->buffer) - unused_bits_count;
 
@@ -120,7 +119,7 @@ static int32_t insert_buffer_with_overflow(struct instream* ins, unsigned char b
 /*
  * add_to_buffer: Adds the byte to the input stream buffer. If enough bits are
  *                collected, flush the buffer and store the resulting bits in *result.
- *                Returns the number of bits added to the buffer.
+ *                Returns the number of bits added to the buffer before flushing.
  */
 static size_t add_to_buffer(struct instream* ins, int32_t* result, unsigned char byte, size_t bit_count)
 {
