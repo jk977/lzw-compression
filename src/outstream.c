@@ -10,7 +10,7 @@ struct outstream {
     void (*write)(unsigned char, void*);
     void* context;
 
-    uint32_t buffer;
+    unsigned char buffer;
     uint8_t bufsize;
 
     uint32_t outcount;
@@ -59,39 +59,19 @@ void outs_write_bits(struct outstream* outs, uint32_t bits, size_t bit_count)
         return;
     }
 
-    size_t bits_pending = bit_count + outs->bufsize;
+    size_t const buffer_avail = BITS_IN(outs->buffer) - outs->bufsize;
 
-    while (bits_pending >= CHAR_BIT) {
-        // size of the empty bits in buffer
-        size_t const lower_size = CHAR_BIT - outs->bufsize;
-
-        // put the old buffer bits into the upper part of the output,
-        // and the parameter bits into the lower part, as specified by
-        // the assignment description
-        unsigned char const upper = outs->buffer & (~0u << lower_size);
-        size_t const lower_padding = (bit_count > CHAR_BIT) ?
-            bit_count - CHAR_BIT :
-            0;
-
-        unsigned char const lower = bits >> lower_padding;
-
-        outs->buffer = upper | lower;
+    if (bit_count == buffer_avail) {
+        outs->buffer |= bits;
+        outs->bufsize += bit_count;
+    } else if (bit_count < buffer_avail) {
+        outs->buffer |= bits << (buffer_avail - bit_count);
+        outs->bufsize += bit_count;
+    } else {
+        outs->buffer |= bits >> (bit_count - buffer_avail);
         outs->bufsize = CHAR_BIT;
         outs_flush(outs);
-
-        // update information about the remaining bits.
-        bits_pending -= CHAR_BIT;
-        bits <<= lower_size;
-    }
-
-    // store remaining bits in buffer, adding trailing zeroes.
-    // if no bits remain, buffer will be 0.
-    if (bits_pending > 0) {
-        unsigned char const mask = ~0u >> (BITS_IN(bits) - bit_count);
-        unsigned char const remaining = bits & mask;
-
-        outs->buffer |= remaining << (CHAR_BIT - outs->bufsize - bit_count);
-        outs->bufsize += bit_count;
+        outs_write_bits(outs, bits, bit_count - buffer_avail);
     }
 }
 
