@@ -33,7 +33,8 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         return false;
     }
 
-    struct lzwcontext* ctx = context_init(1, context, read_byte, write_byte);
+    size_t const init_seq_size = 1;
+    struct lzwcontext* ctx = context_init(init_seq_size, context, read_byte, write_byte);
 
     if (ctx == NULL) {
         return false;

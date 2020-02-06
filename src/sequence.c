@@ -50,12 +50,56 @@ void seq_destroy(struct sequence* seq)
 }
 
 /*
- * seq_length: Get the length of the sequence, excluding the initial
- *             empty node. Returns -1 if the argument is NULL.
+ * seq_as_cstr: Converts sequence to C-string. The result must be freed by
+ *              the caller using free().
+ */
+char* seq_as_cstr(struct sequence* seq)
+{
+    char* result = malloc(seq->used + 1);
+
+    if (result == NULL) {
+        return NULL;
+    }
+
+    strncpy(result, seq->content, seq->used);
+    result[seq->used] = '\0';
+
+    return result;
+}
+
+/*
+ * seq_length: Get the length of the sequence, excluding the null byte.
  */
 size_t seq_length(struct sequence const* seq)
 {
-    return seq->length;
+    return seq->used;
+}
+
+/*
+ * seq_get: Gets the character at the given index, or -1 if index is invalid.
+ */
+int seq_get(struct sequence* seq, size_t i)
+{
+    char result = -1;
+
+    if (seq->used > i) {
+        result = seq->content[i];
+    }
+
+    return result;
+}
+
+/*
+ * seq_last: Gets the last element of the sequence,
+ *           or -1 if the sequence is empty.
+ */
+int seq_last(struct sequence* seq)
+{
+    if (seq->used == 0) {
+        return -1;
+    }
+
+    return seq_get(seq, seq->used - 1);
 }
 
 /*
@@ -69,6 +113,7 @@ bool seq_push(struct sequence* seq, char c)
     }
 
     if (seq->used == seq->length) {
+        // not enough space, so double the buffer size first
         char* new_content = realloc(seq->content, seq->length * 2);
 
         if (new_content == NULL) {
@@ -83,6 +128,22 @@ bool seq_push(struct sequence* seq, char c)
     ++seq->used;
 
     return true;
+}
+
+/*
+ * seq_pop: Shrinks the sequence by 1 and returns the element
+ *          that was removed, or -1 if sequence is empty.
+ */
+int seq_pop(struct sequence* seq)
+{
+    if (seq->used == 0) {
+        return -1;
+    }
+
+    char result = seq_last(seq);
+    --seq->used;
+
+    return result;
 }
 
 /*
