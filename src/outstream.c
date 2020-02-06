@@ -53,22 +53,28 @@ void outs_destroy(struct outstream* outs)
 void outs_write_bits(struct outstream* outs, uint32_t bits, size_t bit_count)
 {
     if (bit_count > BITS_IN(bits)) {
+        // invalid number of bits requested to be written
         return;
     }
 
     size_t const buffer_avail = BITS_IN(outs->buffer) - outs->bufsize;
 
     if (bit_count == buffer_avail) {
+        // fill the buffer and flush
         outs->buffer |= bits;
         outs->bufsize += bit_count;
         outs_flush(outs);
     } else if (bit_count < buffer_avail) {
-        outs->buffer |= bits << (buffer_avail - bit_count);
+        // add bits to the buffer without flushing
+        outs->buffer |= SH_LEFT(bits, buffer_avail - bit_count);
         outs->bufsize += bit_count;
     } else {
-        outs->buffer |= bits >> (bit_count - buffer_avail);
+        // more bits requested to be written than the buffer can hold.
+        // fill the buffer, flush, then repeat for the remaining bits.
+        outs->buffer |= SH_RIGHT(bits, bit_count - buffer_avail);
         outs->bufsize = CHAR_BIT;
         outs_flush(outs);
+
         outs_write_bits(outs, bits, bit_count - buffer_avail);
     }
 }
@@ -76,7 +82,7 @@ void outs_write_bits(struct outstream* outs, uint32_t bits, size_t bit_count)
 /*
  * outs_flush: Flush the buffer of the output bitstream.
  *             Since outs_write_bits() ensures the buffer is properly zeroed,
- *             this function does not check for garbage bits in the buffer.
+ *             this function does not zero out garbage bits in the buffer.
  */
 void outs_flush(struct outstream* outs)
 {

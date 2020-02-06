@@ -8,8 +8,6 @@
 #include <assert.h>
 #include <limits.h>
 
-#include <sys/types.h>
-
 struct instream {
     int (*read)(void*);
     void* context;
@@ -47,6 +45,11 @@ void ins_destroy(struct instream* ins)
     free(ins);
 }
 
+/*
+ * add_to_buffer: Add the given number of bits to the buffer.
+ *                The input is assumed to be at most a byte, which is
+ *                enforced by ins_read_bits() before calling this function.
+ */
 static void add_to_buffer(struct instream* ins, unsigned char bits, size_t bit_count)
 {
     if (bit_count == 0) {
@@ -101,17 +104,21 @@ static int32_t flush_buffer(struct instream* ins, size_t bit_count)
 
 /*
  * ins_read_bits: Return the given number of bits from the input stream.
- *                If bit_count is 0 or greater than the space allowed by
+ *                If bit_count is greater than the space allowed by
  *                the internal buffer, returns EOF.
  */
 int32_t ins_read_bits(struct instream* ins, size_t bit_count)
 {
-    if (bit_count == 0 || bit_count > BITS_IN(ins->buffer)) {
+    if (bit_count > BITS_IN(ins->buffer)) {
+        // too many bits requested
         return EOF;
     } else if (ins->bufsize >= bit_count) {
+        // no need to read from the stream; take what's needed from buffer.
+        // this check also functions as the base case for recursion.
         return flush_buffer(ins, bit_count);
     }
 
+    // the number of bits to obtain from the input stream
     unsigned int const bits_needed = bit_count - ins->bufsize;
 
     int32_t result;
@@ -119,19 +126,27 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
     unsigned char const next_byte = next;
 
     if (next == EOF) {
-        return flush_buffer(ins, bit_count);
+        // not enough bits in stream or buffer to complete the read.
+        // using EOF instead of returning the remaining bits in the
+        // buffer is a deliberate choice, since there wouldn't be bit_count
+        // meaningful bits in the return value.
+        return EOF;
     }
 
     if (bits_needed == CHAR_BIT) {
         add_to_buffer(ins, next_byte, CHAR_BIT);
         result = flush_buffer(ins, bit_count);
     } else if (bits_needed < CHAR_BIT) {
+        // too many bits read, so fill the buffer, flush it,
+        // then store the leftovers
         unsigned int const leftover_bit_count = CHAR_BIT - bits_needed;
+        unsigned char const leftover_bits = SH_LEFT(next_byte, bits_needed);
 
         add_to_buffer(ins, next_byte, bits_needed);
         result = flush_buffer(ins, bit_count);
-        add_to_buffer(ins, SH_LEFT(next_byte, bits_needed), leftover_bit_count);
+        add_to_buffer(ins, leftover_bits, leftover_bit_count);
     } else {
+        // needs more bytes after last read, so repeat the procedure
         add_to_buffer(ins, next_byte, CHAR_BIT);
         result = ins_read_bits(ins, bit_count);
     }
