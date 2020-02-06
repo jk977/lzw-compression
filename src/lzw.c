@@ -29,20 +29,20 @@ static bool verify_params(struct params const* p)
         && p->write != NULL;
 }
 
-static struct trie* create_dict(void)
+static struct trie* create_trie(void)
 {
-    struct trie* dict = trie_init(-1);
+    struct trie* trie = trie_init(-1);
 
     for (size_t i = 0; i < CHILDREN_COUNT; ++i) {
         char key = (char) i;
 
-        if (!trie_insert(dict, &key, 1, i)) {
-            trie_destroy(dict);
+        if (!trie_insert(trie, &key, 1, i)) {
+            trie_destroy(trie);
             return NULL;
         }
     }
 
-    return dict;
+    return trie;
 }
 
 static void free_structs(struct instream* ins, struct outstream* outs, struct sequence* seq, struct trie* trie)
@@ -78,10 +78,10 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
     struct outstream* outs = outs_init(context, write_byte);
 
     struct sequence* current_seq = seq_init();
-    struct trie* dict = create_dict();
+    struct trie* trie = create_trie();
 
-    if (ins == NULL || outs == NULL || current_seq == NULL || dict == NULL) {
-        free_structs(ins, outs, current_seq, dict);
+    if (ins == NULL || outs == NULL || current_seq == NULL || trie == NULL) {
+        free_structs(ins, outs, current_seq, trie);
         return false;
     }
 
