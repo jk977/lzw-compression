@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CHILDREN_COUNT 256
-
 struct trie {
     value_t value;
     struct trie* children[CHILDREN_COUNT];
