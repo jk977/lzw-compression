@@ -4,6 +4,7 @@
 #include "outstream.h"
 #include "instream.h"
 #include "trie.h"
+#include "sequence.h"
 
 #include <stddef.h>
 
@@ -15,9 +16,7 @@ struct lzwcontext {
     struct outstream* outs;
     struct instream* ins;
     struct trie* trie;
-
-    char* seq;
-    size_t seq_length;
+    struct sequence* seq;
 };
 
 struct lzwcontext* context_init(size_t seq_length, void* context,

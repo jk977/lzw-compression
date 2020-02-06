@@ -39,9 +39,7 @@ struct lzwcontext* context_init(size_t seq_length, void* context,
     ctx->outs = outs_init(context, write_byte);
     ctx->ins = ins_init(context, read_byte);
     ctx->trie = create_trie();
-
-    ctx->seq = malloc(seq_length);
-    ctx->seq_length = seq_length;
+    ctx->seq = seq_init(seq_length);
 
     if (ctx->outs == NULL
             || ctx->ins == NULL
@@ -51,7 +49,6 @@ struct lzwcontext* context_init(size_t seq_length, void* context,
         return NULL;
     }
 
-    memset(ctx->seq, 0, seq_length);
     return ctx;
 }
 
