@@ -31,7 +31,6 @@ struct outstream* outs_init(void* context,
 
     outs->buffer = 0;
     outs->bufsize = 0;
-    outs->outcount = 0;
 
     return outs;
 }

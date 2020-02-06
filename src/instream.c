@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <assert.h>
 #include <limits.h>
 
 #include <sys/types.h>
@@ -34,7 +35,6 @@ struct instream* ins_init(void* context,
 
     ins->buffer = 0;
     ins->bufsize = 0;
-    ins->incount = 0;
 
     return ins;
 }
@@ -47,15 +47,30 @@ void ins_destroy(struct instream* ins)
     free(ins);
 }
 
-/*
- * insert_buffer: Puts the byte into the input stream buffer, assuming
- *                there will be no overflow.
- */
-static void insert_buffer(struct instream* ins, unsigned char byte)
+static void add_to_buffer(struct instream* ins, unsigned char bits, size_t bit_count)
 {
-    size_t const shift_distance = BITS_IN(ins->buffer) - ins->bufsize - CHAR_BIT;
-    ins->buffer |= byte << shift_distance;
-    ins->bufsize += CHAR_BIT;
+    if (bit_count == 0) {
+        return;
+    }
+
+    size_t const buffer_avail = BITS_IN(ins->buffer) - ins->bufsize;
+    size_t const unused_buffer_space = buffer_avail - bit_count;
+
+    assert(bit_count <= CHAR_BIT);
+    assert(bit_count <= buffer_avail);
+
+    size_t const unused_bit_count = CHAR_BIT - bit_count;
+    uint32_t const used_bits = bits & (~0u << unused_bit_count);
+
+    if (unused_buffer_space == bit_count) {
+        ins->buffer |= SH_RIGHT(used_bits, unused_bit_count);
+    } else if (unused_buffer_space < bit_count) {
+        ins->buffer |= SH_RIGHT(used_bits, CHAR_BIT - unused_buffer_space);
+    } else {
+        ins->buffer |= SH_LEFT(used_bits, unused_buffer_space - unused_bit_count);
+    }
+
+    ins->bufsize += bit_count;
 }
 
 /*
@@ -69,69 +84,19 @@ static int32_t flush_buffer(struct instream* ins, size_t bit_count)
         return EOF;
     }
 
-    uint32_t const mask = ~0u << (BITS_IN(ins->buffer) - bit_count);
-    uint32_t result = ins->buffer & mask;
+    unsigned int const bits_needed = (bit_count > ins->bufsize) ?
+        ins->bufsize :
+        bit_count;
 
-    ins->buffer <<= bit_count;
-    ins->bufsize -= bit_count;
+    size_t const align_distance = BITS_IN(ins->buffer) - bits_needed;
 
-    return result;
-}
+    uint32_t const mask = SH_LEFT(~0u, BITS_IN(ins->buffer) - bits_needed);
+    uint32_t result = SH_RIGHT(ins->buffer & mask, align_distance);
 
-/*
- * insert_buffer_with_overflow: Inserts data into the buffer, flushes, and returns the completed data.
- */
-static int32_t insert_buffer_with_overflow(struct instream* ins, unsigned char byte, size_t bit_count)
-{
-    // extract the used and unused bits in a right-aligned 0-padded 32-bit space
-    unsigned char const overflow_mask = (unsigned char) ~0u >> (bit_count - ins->bufsize);
+    ins->buffer = SH_LEFT(ins->buffer, bits_needed);
+    ins->bufsize -= bits_needed;
 
-    uint32_t used_bits = (uint32_t) (byte & ~overflow_mask);
-    size_t const used_bits_count = bit_count - ins->bufsize;
-    size_t const used_bit_padding = BITS_IN(ins->buffer) - ins->bufsize - CHAR_BIT;
-
-    uint32_t unused_bits = (uint32_t) (byte & overflow_mask);
-    size_t const unused_bits_count = CHAR_BIT - used_bits_count;
-    size_t const unused_bit_padding = BITS_IN(ins->buffer) - unused_bits_count;
-
-    // align to the very left and avoid runtime errors
-    // caused by shifting n-bit integers by n bits
-    if (unused_bit_padding >= BITS_IN(unused_bits)) {
-        unused_bits = 0;
-    } else {
-        unused_bits <<= unused_bit_padding;
-    }
-
-    // combine buffer and used bits
-    ins->buffer |= used_bits << used_bit_padding;
-    ins->bufsize += used_bits_count;
-
-    int32_t result = flush_buffer(ins, bit_count);
-
-    ins->buffer |= unused_bits >> ins->bufsize;
-    ins->bufsize += unused_bits_count;
-
-    return result;
-}
-
-/*
- * add_to_buffer: Adds the byte to the input stream buffer. If enough bits are
- *                collected, flush the buffer and store the resulting bits in *result.
- *                Returns the number of bits added to the buffer before flushing.
- */
-static size_t add_to_buffer(struct instream* ins, int32_t* result, unsigned char byte, size_t bit_count)
-{
-    size_t bits_added;
-
-    if (bit_count > ins->bufsize + CHAR_BIT) {
-        bits_added = CHAR_BIT;
-        insert_buffer(ins, byte);
-    } else {
-        bits_added = bit_count - ins->bufsize;
-        *result = insert_buffer_with_overflow(ins, byte, bit_count);
-    }
-
-    return bits_added;
+    return (int32_t) result;
 }
 
 /*
@@ -143,35 +108,32 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
 {
     if (bit_count == 0 || bit_count > BITS_IN(ins->buffer)) {
         return EOF;
+    } else if (ins->bufsize >= bit_count) {
+        return flush_buffer(ins, bit_count);
     }
 
-    int32_t result = EOF;
+    unsigned int const bits_needed = bit_count - ins->bufsize;
 
-    // avoid overflow caused by storing negatives in an unsigned integer type.
-    size_t bits_remaining = (bit_count >= ins->bufsize) ?
-        bit_count - ins->bufsize :
-        0;
+    int32_t result;
+    int const next = (ins->read)(ins->context);
+    unsigned char const next_byte = next;
 
-    while (bits_remaining > 0) {
-        int next = (ins->read)(ins->context);
-
-        if (next == EOF) {
-            // no more data to be read; exit loop early
-            break;
-        }
-
-        bits_remaining -= add_to_buffer(ins, &result, next, bit_count);
+    if (next == EOF) {
+        return flush_buffer(ins, bit_count);
     }
 
-    if (result == EOF) {
-        // take the rest from the buffer if the end of input is reached
+    if (bits_needed == CHAR_BIT) {
+        add_to_buffer(ins, next_byte, CHAR_BIT);
         result = flush_buffer(ins, bit_count);
-    }
+    } else if (bits_needed < CHAR_BIT) {
+        unsigned int const leftover_bit_count = CHAR_BIT - bits_needed;
 
-    if (result != EOF) {
-        // right-align result before returning
-        size_t const shift_distance = BITS_IN(result) + bits_remaining - bit_count;
-        result = (uint32_t) result >> shift_distance;
+        add_to_buffer(ins, next_byte, bits_needed);
+        result = flush_buffer(ins, bit_count);
+        add_to_buffer(ins, SH_LEFT(next_byte, bits_needed), leftover_bit_count);
+    } else {
+        add_to_buffer(ins, next_byte, CHAR_BIT);
+        result = ins_read_bits(ins, bit_count);
     }
 
     return result;
