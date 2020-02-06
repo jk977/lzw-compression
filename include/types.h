@@ -3,6 +3,6 @@
 
 #include <stdint.h>
 
-typedef uint32_t code_t;
+typedef int32_t code_t;
 
 #endif // TYPES_H_

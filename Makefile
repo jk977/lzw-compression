@@ -82,7 +82,10 @@ profile: CFLAGS += -pg
 profile: all
 
 tests: CFLAGS += -UNDEBUG -Wno-error
-tests: paths test-trie test-outstream test-instream
+tests: paths test-trie test-outstream test-instream test-lzw
+
+test-lzw: tests/test_lzw.c
+	$(CC) $(LIBRARIES) $(CFLAGS) $(SRC_DIR)/*.c $^ -o $(BUILD_DIR)/tests/$@
 
 # default rule for test file -- no object dependencies
 # and outputs executable in $(BUILD_DIR)/tests

@@ -4,6 +4,9 @@
 #include "instream.h"
 #include "types.h"
 
+#include <stdio.h>
+#include <limits.h>
+
 struct params {
     unsigned int current_bits;
     unsigned int max_bits;
@@ -12,7 +15,8 @@ struct params {
     void* context;
 };
 
-static bool verify_params(struct params const* p) {
+static bool verify_params(struct params const* p)
+{
     return p->current_bits >= LZW_MINIMUM_BITS
         && p->max_bits <= LZW_MAXIMUM_BITS
         && p->read != NULL
@@ -37,7 +41,7 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
     }
 
     struct instream* ins = ins_init(context, read_byte);
-    struct outstream* outs = outs_init(context, write_char);
+    struct outstream* outs = outs_init(context, write_byte);
 
     int next;
     code_t next_code = 0;
@@ -46,7 +50,8 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
     while ((next = ins_read_bits(ins, current_bits)) != EOF) {
         // TODO: generate sequence of codes and write them 1 byte at a time
         unsigned char const byte = next;
-        outs_write_bits(outs, next_code);
+        (void) byte;
+        outs_write_bits(outs, next_code, current_bits);
     }
 
     return false;
@@ -61,7 +66,7 @@ bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
         .current_bits = start_bits,
         .max_bits = max_bits,
         .read = read_byte,
-        .write = write_char,
+        .write = write_byte,
         .context = context
     };
 
@@ -69,16 +74,16 @@ bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
         return false;
     }
 
-    int byte = 0;
-    char next_output = '\0';
-
     struct instream* ins = ins_init(context, read_byte);
-    struct outstream* outs = outs_init(context, write_char);
+    struct outstream* outs = outs_init(context, write_byte);
 
-    while ((byte = read_byte(context)) != EOF) {
+    code_t code;
+    unsigned int current_bits = start_bits;
+
+    while ((code = ins_read_bits(ins, current_bits)) != EOF) {
         // TODO: decode sequence of codes and write them 1 byte at a time
-        next_output = byte;
-        write_char(next_output, context);
+        unsigned char next_output = '\0';
+        outs_write_bits(outs, next_output, CHAR_BIT);
     }
 
     return false;
