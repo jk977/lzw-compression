@@ -42,6 +42,7 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
 
     struct instream* ins = ins_init(context, read_byte);
     struct outstream* outs = outs_init(context, write_byte);
+    struct trie* trie = trie_init(-1);
 
     int next;
     code_t next_code = 0;
@@ -76,6 +77,7 @@ bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
 
     struct instream* ins = ins_init(context, read_byte);
     struct outstream* outs = outs_init(context, write_byte);
+    struct trie* trie = trie_init(-1);
 
     code_t code;
     unsigned int current_bits = start_bits;
