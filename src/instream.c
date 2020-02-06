@@ -15,8 +15,6 @@ struct instream {
 
     uint32_t buffer;
     size_t bufsize;
-
-    uint32_t incount;
 };
 
 /*

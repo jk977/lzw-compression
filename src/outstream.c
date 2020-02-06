@@ -12,8 +12,6 @@ struct outstream {
 
     unsigned char buffer;
     uint8_t bufsize;
-
-    uint32_t outcount;
 };
 
 /*
@@ -91,5 +89,4 @@ void outs_flush(struct outstream* outs)
 
     outs->buffer = 0;
     outs->bufsize = 0;
-    ++outs->outcount;
 }
