@@ -62,7 +62,7 @@
 
 bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         int (*read_byte)(void* context),
-        void (*write_char)(unsigned char c, void* context),
+        void (*write_byte)(unsigned char c, void* context),
         void* context);
 
 /* lzwDecode
@@ -79,7 +79,7 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
 
 bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
         int (*read_byte)(void* context),
-        void (*write_char)(unsigned char c, void* context),
+        void (*write_byte)(unsigned char c, void* context),
         void* context);
 
 #endif // LZW_H_

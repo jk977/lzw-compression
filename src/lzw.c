@@ -21,14 +21,14 @@ static bool verify_params(struct params const* p) {
 
 bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         int (*read_byte)(void* context),
-        void (*write_char)(unsigned char c, void* context),
+        void (*write_byte)(unsigned char c, void* context),
         void* context)
 {
     struct params const p = {
         .current_bits = start_bits,
         .max_bits = max_bits,
         .read = read_byte,
-        .write = write_char,
+        .write = write_byte,
         .context = context
     };
 
@@ -36,16 +36,17 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         return false;
     }
 
-    int byte = 0;
-    char next_output = '\0';
+    struct instream* ins = ins_init(context, read_byte);
+    struct outstream* outs = outs_init(context, write_char);
 
-    unsigned int current_bits = start_bits;
+    int next;
     code_t next_code = 0;
+    unsigned int current_bits = start_bits;
 
-    while ((byte = read_byte(context)) != EOF) {
+    while ((next = ins_read_bits(ins, current_bits)) != EOF) {
         // TODO: generate sequence of codes and write them 1 byte at a time
-        next_output = byte;
-        write_char(next_output, context);
+        unsigned char const byte = next;
+        outs_write_bits(outs, next_code);
     }
 
     return false;
@@ -53,7 +54,7 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
 
 bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
         int (*read_byte)(void* context),
-        void (*write_char)(unsigned char c, void* context),
+        void (*write_byte)(unsigned char c, void* context),
         void* context)
 {
     struct params const p = {
@@ -70,6 +71,9 @@ bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
 
     int byte = 0;
     char next_output = '\0';
+
+    struct instream* ins = ins_init(context, read_byte);
+    struct outstream* outs = outs_init(context, write_char);
 
     while ((byte = read_byte(context)) != EOF) {
         // TODO: decode sequence of codes and write them 1 byte at a time

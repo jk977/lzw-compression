@@ -13,7 +13,7 @@ struct trie;
 /*
  * trie construction and destruction methods.
  */
-struct trie* trie_init(void);
+struct trie* trie_init(value_t value);
 void trie_destroy(struct trie* trie);
 
 /*

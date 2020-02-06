@@ -10,19 +10,18 @@ struct trie {
     struct trie* children[CHILDREN_COUNT];
 };
 
-struct trie* trie_init(void)
+/*
+ * trie_init: Initializes trie with given value.
+ */
+struct trie* trie_init(value_t value)
 {
-    /*
-     * create an empty trie.
-     */
-
-    struct trie* trie = malloc(sizeof *trie);
+    struct trie* trie = malloc(sizeof(*trie));
 
     if (trie == NULL) {
         return NULL;
     }
 
-    trie->value = 0;
+    trie->value = value;
 
     for (size_t i = 0; i < CHILDREN_COUNT; ++i) {
         trie->children[i] = NULL;
@@ -31,12 +30,11 @@ struct trie* trie_init(void)
     return trie;
 }
 
+/*
+ * trie_destroy: Free the structure allocated by trie_init().
+ */
 void trie_destroy(struct trie* trie)
 {
-    /*
-     * free the allocated trie.
-     */
-
     if (trie == NULL) {
         return;
     }
@@ -48,18 +46,19 @@ void trie_destroy(struct trie* trie)
     free(trie);
 }
 
+
+/*
+ * get_subtrie_at: Find the subtrie with the given key.
+ *                 For instance, if key is "abc", the trie will be traversed
+ *                 from the root node to the child at 'a', then 'b', then 'c',
+ *                 and return a pointer to the resulting subtrie.
+ */
 static struct trie* get_subtrie_at(struct trie* trie, char const* key, size_t key_length)
 {
-    /*
-     * find the subtrie with the given key. for instance, if key is "abc",
-     * the trie will be traversed from the root node to the child at 'a', then
-     * 'b', then 'c', and return a pointer to the resulting subtrie.
-     */
-
     if (trie == NULL || key == NULL) {
         return NULL;
     }
-    
+
     if (key_length == 0) {
         // length being 0 implies that the current trie is the result
         return trie;
@@ -69,7 +68,7 @@ static struct trie* get_subtrie_at(struct trie* trie, char const* key, size_t ke
     struct trie* child = trie->children[index];
 
     if (child == NULL) {
-        // no such key exists in trie
+        // no such key exists
         return NULL;
     } else {
         // descend to next subtrie
@@ -80,6 +79,11 @@ static struct trie* get_subtrie_at(struct trie* trie, char const* key, size_t ke
     }
 }
 
+/*
+ * trie_insert: Inserts the key into the trie, returning false if allocation
+ *              fails or if the first (key_length-1) characters of the key aren't
+ *              already present. Returns true on successful insertion.
+ */
 bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t value)
 {
     if (trie == NULL || key == NULL) {
@@ -97,23 +101,23 @@ bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t 
         return false;
     }
 
-    struct trie* result = trie_init();
-
-    if (result == NULL) {
-        return false;
-    }
-
+    struct trie* result = trie_init(value);
     target->children[entry_index] = result;
-    result->value = value;
-
-    return true;
+    return result != NULL;
 }
 
+/*
+ * trie_contains: Checks if key is in trie.
+ */
 bool trie_contains(struct trie* trie, char const* key, size_t key_length)
 {
     return trie_lookup(trie, key, key_length) != NULL;
 }
 
+/*
+ * trie_lookup: Returns pointer to the value corresponding to the given key,
+ *              or NULL if it doesn't exist.
+ */
 value_t* trie_lookup(struct trie* trie, char const* key, size_t key_length)
 {
     struct trie* result = get_subtrie_at(trie, key, key_length);
@@ -122,6 +126,10 @@ value_t* trie_lookup(struct trie* trie, char const* key, size_t key_length)
         &result->value :
         NULL;
 }
+
+/*
+ * trie_cstr_*: Same as trie_* but with a key length equal to strlen(key).
+ */
 
 bool trie_cstr_insert(struct trie* trie, char const* key, value_t value)
 {

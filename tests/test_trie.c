@@ -6,13 +6,13 @@
 #include <assert.h>
 
 void test_init(void) {
-    struct trie* trie = trie_init();
+    struct trie* trie = trie_init(0);
     assert(trie != NULL);
     trie_destroy(trie);
 }
 
 void test_insert(void) {
-    struct trie* trie = trie_init();
+    struct trie* trie = trie_init(0);
 
     assert(trie != NULL);
 
@@ -32,7 +32,7 @@ void test_insert(void) {
 }
 
 void test_contains(void) {
-    struct trie* trie = trie_init();
+    struct trie* trie = trie_init(0);
 
     trie_cstr_insert(trie, "f", 1);
     trie_cstr_insert(trie, "fo", 2);
