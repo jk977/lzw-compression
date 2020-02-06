@@ -2,7 +2,7 @@
 #define SEQUENCE_H_
 
 #include <stdbool.h>
-#include <stddef.h>
+#include <sys/types.h>
 
 typedef char seqval_t;
 struct sequence;
@@ -10,7 +10,7 @@ struct sequence;
 struct sequence* seq_init(void);
 void seq_destroy(struct sequence* seq);
 
-size_t seq_length(struct sequence const* seq);
+ssize_t seq_length(struct sequence const* seq);
 bool seq_add(struct sequence* seq, char entry);
 
 struct sequence* seq_from_str(char const* str);
