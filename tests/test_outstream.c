@@ -11,8 +11,6 @@
 #define FOREACH(i, ary) \
     for (size_t i = 0; i < sizeof(ary) / sizeof((ary)[0]); ++i)
 
-static char const* default_file = "foo.txt";
-
 void write_file(unsigned char c, void* context)
 {
     FILE* stream = context;
