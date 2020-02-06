@@ -10,23 +10,17 @@
 #include <stdio.h>
 #include <limits.h>
 
-struct params {
-    unsigned int current_bits;
-    unsigned int max_bits;
-    int (*read)(void* context);
-    void (*write)(unsigned char c, void* context);
-    void* context;
-};
-
 /*
  * verify_params: Ensure that the given parameters are valid.
  */
-static bool verify_params(struct params const* p)
+static bool verify_params(unsigned int start_bits, unsigned int max_bits,
+        int (*read_byte)(void* context),
+        void (*write_byte)(unsigned char c, void* context))
 {
-    return p->current_bits >= LZW_MINIMUM_BITS
-        && p->max_bits <= LZW_MAXIMUM_BITS
-        && p->read != NULL
-        && p->write != NULL;
+    return start_bits >= LZW_MINIMUM_BITS
+        && max_bits <= LZW_MAXIMUM_BITS
+        && read_byte != NULL
+        && write_byte != NULL;
 }
 
 static struct trie* create_trie(void)
@@ -45,6 +39,10 @@ static struct trie* create_trie(void)
     return trie;
 }
 
+/*
+ * free_structs: Convenience method to avoid boilerplate frees between encoding
+ *               and decoding.
+ */
 static void free_structs(struct instream* ins, struct outstream* outs, struct sequence* seq, struct trie* trie)
 {
     ins_destroy(ins);
@@ -62,15 +60,7 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         void (*write_byte)(unsigned char c, void* context),
         void* context)
 {
-    struct params const p = {
-        .current_bits = start_bits,
-        .max_bits = max_bits,
-        .read = read_byte,
-        .write = write_byte,
-        .context = context
-    };
-
-    if (!verify_params(&p)) {
+    if (!verify_params(start_bits, max_bits, read_byte, write_byte)) {
         return false;
     }
 
@@ -95,6 +85,7 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         outs_write_bits(outs, next_code, current_bits);
     }
 
+    free_structs(ins, outs, current_seq, trie);
     return false;
 }
 
@@ -107,23 +98,17 @@ bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
         void (*write_byte)(unsigned char c, void* context),
         void* context)
 {
-    struct params const p = {
-        .current_bits = start_bits,
-        .max_bits = max_bits,
-        .read = read_byte,
-        .write = write_byte,
-        .context = context
-    };
-
-    if (!verify_params(&p)) {
+    if (!verify_params(start_bits, max_bits, read_byte, write_byte)) {
         return false;
     }
 
     struct instream* ins = ins_init(context, read_byte);
     struct outstream* outs = outs_init(context, write_byte);
+    struct sequence* current_seq = seq_init();
+    struct trie* trie = create_trie();
 
-    if (ins == NULL || outs == NULL) {
-        free_structs(ins, outs, NULL, NULL);
+    if (ins == NULL || outs == NULL || current_seq == NULL || trie == NULL) {
+        free_structs(ins, outs, current_seq, trie);
         return false;
     }
 
@@ -136,8 +121,6 @@ bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
         outs_write_bits(outs, next_output, CHAR_BIT);
     }
 
-    ins_destroy(ins);
-    outs_destroy(outs);
-
+    free_structs(ins, outs, current_seq, trie);
     return false;
 }
