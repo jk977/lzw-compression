@@ -25,6 +25,10 @@ static bool verify_params(unsigned int start_bits, unsigned int max_bits,
         && write_byte != NULL;
 }
 
+/*
+ * write_prev_char_code: Looks up the string (i.e., sequence) in the trie and
+ *                       writes its code if found. Returns false if not found.
+ */
 static bool write_prev_char_code(struct lzwcontext* ctx, unsigned int current_bits, char const* str, size_t length)
 {
     code_t* code = trie_lookup(ctx->trie, str, length);
@@ -64,17 +68,11 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
     unsigned int current_bits = start_bits;
 
     while ((next = ins_read_bits(ctx->ins, CHAR_BIT)) != EOF) {
-        /*
-         * analogs to algorithm description in assignment:
-         * ctx->seq     ~ X
-         * ctx->trie    ~ D
-         * next         ~ C
-         * next_code    ~ nextCode
-         */
-
         seq_push(ctx->seq, next);
         current_str = seq_to_cstr(ctx->seq);
 
+        // if sequence isn't found, write its prefix's code and
+        // assign the sequence a new character code if possible
         if (!trie_contains(ctx->trie, current_str, seq_length(ctx->seq))) {
             if (!write_prev_char_code(ctx, current_bits, current_str, seq_length(ctx->seq) - 1)) {
                 return false;
@@ -84,12 +82,14 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
             bool needs_expand = next_code == code_max;
             bool can_expand = current_bits < max_bits;
 
+            // expand the current code width by 1 if it's possible and needed
             if (needs_expand && can_expand) {
                 trie_insert(ctx->trie, current_str, seq_length(ctx->seq), next_code);
                 ++current_bits;
                 ++next_code;
             }
 
+            // restart sequence at current character
             seq_clear(ctx->seq);
             seq_push(ctx->seq, next);
         }
@@ -97,6 +97,7 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         free(current_str);
     }
 
+    // do one last code write before returning
     char* final_str = seq_to_cstr(ctx->seq);
 
     if (!write_prev_char_code(ctx, current_bits, final_str, seq_length(ctx->seq))) {
