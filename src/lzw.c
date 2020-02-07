@@ -25,6 +25,18 @@ static bool verify_params(unsigned int start_bits, unsigned int max_bits,
         && write_byte != NULL;
 }
 
+static bool write_prev_char_code(struct lzwcontext* ctx, unsigned int current_bits, char const* str, size_t length)
+{
+    code_t* code = trie_lookup(ctx->trie, str, length);
+
+    if (code == NULL) {
+        return false;
+    }
+
+    outs_write_bits(ctx->outs, *code, current_bits);
+    return true;
+}
+
 /*
  * lzwEncode: Encode the bytes read via read_byte using LZW compression
  *            with variable-width codes, writing the result via write_byte.
@@ -51,7 +63,7 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
     char* current_str = NULL;
     unsigned int current_bits = start_bits;
 
-    while ((next = ins_read_bits(ctx->ins, current_bits)) != EOF) {
+    while ((next = ins_read_bits(ctx->ins, CHAR_BIT)) != EOF) {
         /*
          * analogs to algorithm description in assignment:
          * ctx->seq     ~ X
@@ -63,12 +75,13 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         seq_push(ctx->seq, next);
         current_str = seq_to_cstr(ctx->seq);
 
-        if (!trie_contains(ctx->trie, current_str, seq_length(ctx->seq) - 1)) {
-            code_t* code = trie_lookup(ctx->trie, current_str, seq_length(ctx->seq));
-            outs_write_bits(ctx->outs, *code, current_bits);
+        if (!trie_contains(ctx->trie, current_str, seq_length(ctx->seq))) {
+            if (!write_prev_char_code(ctx, current_bits, current_str, seq_length(ctx->seq) - 1)) {
+                return false;
+            }
 
             int32_t const code_max = ~0u >> (BITS_IN(code_max) - current_bits);
-            bool needs_expand = next_code < code_max;
+            bool needs_expand = next_code == code_max;
             bool can_expand = current_bits < max_bits;
 
             if (needs_expand && can_expand) {
@@ -84,8 +97,16 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         free(current_str);
     }
 
+    char* final_str = seq_to_cstr(ctx->seq);
+
+    if (!write_prev_char_code(ctx, current_bits, final_str, seq_length(ctx->seq))) {
+        return false;
+    }
+
+    free(final_str);
     context_destroy(ctx);
-    return false;
+
+    return true;
 }
 
 /*

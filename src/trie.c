@@ -91,7 +91,7 @@ bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t 
     size_t const tail_length = key_length - 1;
     struct trie* target = get_subtrie_at(trie, key, tail_length);
 
-    char const new_entry = key[tail_length];
+    unsigned char const new_entry = key[tail_length];
     size_t const entry_index = (size_t) new_entry;
 
     if (target == NULL || target->children[entry_index] != NULL) {

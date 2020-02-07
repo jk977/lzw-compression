@@ -36,7 +36,7 @@ BUILD_DIR ?= $(PROJECT_ROOT)/build
 ######################
 
 LIBRARIES := 
-OBJECTS := 
+OBJECTS := instream.o outstream.o sequence.o trie.o lzwcontext.o lzw.o
 
 OBJECT_FILES := $(foreach object, $(OBJECTS), $(BUILD_DIR)/$(object))
 
@@ -48,15 +48,7 @@ ifdef DEBUG
 #   -O0                 -- disables optimizations to allow seamless debugging
 #   -g3                 -- generates all debug symbols (including for macros)
 #   -fsanitize=[...]    -- enables sanitizers at runtime to check code behavior
-CFLAGS += -O0 -g3 -fsanitize=address,leak,undefined
-
-ifneq (,$(filter $(CC),cc gcc))
-# if the C compiler is gcc (under the assumption that cc points to gcc),
-# statically link libasan to avoid potential issues with library link order.
-# libasan is required for -fsanitize=address with gcc
-LIBRARIES += -static-libasan
-endif
-
+CFLAGS += -O0 -g3
 else
 # default non-debug flags:
 #   -O3         -- allows high code optimization
