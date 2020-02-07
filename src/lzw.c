@@ -79,13 +79,16 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
             }
 
             int32_t const code_max = ~0u >> (BITS_IN(code_max) - current_bits);
-            bool needs_expand = next_code == code_max;
+            bool needs_expand = next_code >= code_max;
             bool can_expand = current_bits < max_bits;
 
             // expand the current code width by 1 if it's possible and needed
-            if (needs_expand && can_expand) {
+            if (!needs_expand || can_expand) {
+                if (needs_expand) {
+                    ++current_bits;
+                }
+
                 trie_insert(ctx->trie, current_str, seq_length(ctx->seq), next_code);
-                ++current_bits;
                 ++next_code;
             }
 

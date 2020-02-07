@@ -22,7 +22,10 @@ int main(void) {
     FILE* streams[] = { fopen(inpath, "r"), fopen(outpath, "w") };
     puts("Calling lzwEncode()...");
 
-    if (lzwEncode(16, 16, read_byte, write_byte, streams)) {
+    unsigned int start_bits = 8;
+    unsigned int max_bits = 24;
+
+    if (lzwEncode(start_bits, max_bits, read_byte, write_byte, streams)) {
         puts("Success!");
         return EXIT_SUCCESS;
     } else {
