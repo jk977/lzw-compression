@@ -1,3 +1,7 @@
+/*
+ * trie.h: A trie associating strings with a value_t.
+ */
+
 #ifndef TRIE_H_
 #define TRIE_H_
 
@@ -6,20 +10,18 @@
 
 #include "config.h"
 
-#define TRIE_CHILDREN_COUNT 256
-
 typedef code_t value_t;
 
 struct trie;
 
 /*
- * trie construction and destruction methods.
+ * Construction/destruction functions
  */
 struct trie* trie_init(value_t value);
 void trie_destroy(struct trie* trie);
 
 /*
- * trie operations:
+ * Trie operations:
  *  - insert() puts the key-value pair into the trie, returning
  *      false if the prefix isn't present in the trie or allocation fails.
  *  - lookup() returns the value corresponding to the given key, or

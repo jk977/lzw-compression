@@ -1,4 +1,5 @@
 #include "lzw.h"
+#include "trie.h"
 
 #include "lzwcontext.h"
 #include "config.h"
@@ -25,12 +26,34 @@ static bool verify_params(unsigned int start_bits, unsigned int max_bits,
 }
 
 /*
+ * create_trie: Initialize the trie to be used in the LZW compression algorithm.
+ *              The trie acts as the dictionary in the assignment's given algorithm.
+ */
+static struct trie* create_trie(void)
+{
+    struct trie* trie = trie_init(-1);
+
+    // set every child to hold its index's corresponding character value
+    for (size_t i = 0; i < LZW_CHAR_RANGE; ++i) {
+        char key = (char) i;
+
+        if (!trie_insert(trie, &key, 1, i)) {
+            trie_destroy(trie);
+            return NULL;
+        }
+    }
+
+    return trie;
+}
+
+/*
  * write_prev_char_code: Looks up the string (i.e., sequence) in the trie and
  *                       writes its code if found. Returns false if not found.
  */
-static bool write_prev_char_code(struct lzwcontext* ctx, unsigned int current_bits, char const* str, size_t length)
+static bool write_prev_char_code(struct lzwcontext* ctx, struct trie* trie,
+        unsigned int current_bits, char const* str, size_t length)
 {
-    code_t* code = trie_lookup(ctx->trie, str, length);
+    code_t* code = trie_lookup(trie, str, length);
 
     if (code == NULL) {
         return false;
@@ -43,6 +66,8 @@ static bool write_prev_char_code(struct lzwcontext* ctx, unsigned int current_bi
 /*
  * lzwEncode: Encode the bytes read via read_byte using LZW compression
  *            with variable-width codes, writing the result via write_byte.
+ *            context is the context of the file input/output to be passed
+ *            to the read/write functions.
  */
 bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         int (*read_byte)(void*),
@@ -53,10 +78,15 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         return false;
     }
 
+    // boilerplate initializations, etc.
     size_t const init_seq_size = 1;
     struct lzwcontext* ctx = context_init(init_seq_size, context, read_byte, write_byte);
+    struct trie* trie = create_trie();
 
-    if (ctx == NULL) {
+    if (ctx == NULL || trie == NULL) {
+        context_destroy(ctx);
+        trie_destroy(trie);
+
         return false;
     }
 
@@ -70,24 +100,24 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
         seq_push(ctx->seq, next);
         current_str = seq_to_cstr(ctx->seq);
 
-        // if sequence isn't found, write its prefix's code and
-        // assign the sequence a new character code if possible
-        if (!trie_contains(ctx->trie, current_str, seq_length(ctx->seq))) {
-            if (!write_prev_char_code(ctx, current_bits, current_str, seq_length(ctx->seq) - 1)) {
+        // if sequence isn't found, write everything but the last character and
+        // assign the full sequence a new character code if possible
+        if (!trie_contains(trie, current_str, seq_length(ctx->seq))) {
+            if (!write_prev_char_code(ctx, trie, current_bits, current_str, seq_length(ctx->seq) - 1)) {
                 return false;
             }
 
             int32_t const current_code_max = (1 << current_bits) - 1;
-            bool needs_expand = next_code >= current_code_max;
-            bool can_expand = current_bits < max_bits;
+            bool code_needs_expand = next_code >= current_code_max;
+            bool code_can_expand = current_bits < max_bits;
 
-            // expand the current code width by 1 if it's possible and needed
-            if (!needs_expand || can_expand) {
-                if (needs_expand) {
+            if (!code_needs_expand || code_can_expand) {
+                if (code_needs_expand) {
                     ++current_bits;
                 }
 
-                trie_insert(ctx->trie, current_str, seq_length(ctx->seq), next_code);
+                // add the full sequence to the trie and move to the next code
+                trie_insert(trie, current_str, seq_length(ctx->seq), next_code);
                 ++next_code;
             }
 
@@ -102,11 +132,12 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
     // do one last code write before returning
     char* final_str = seq_to_cstr(ctx->seq);
 
-    if (!write_prev_char_code(ctx, current_bits, final_str, seq_length(ctx->seq))) {
+    if (!write_prev_char_code(ctx, trie, current_bits, final_str, seq_length(ctx->seq))) {
         return false;
     }
 
     free(final_str);
+    trie_destroy(trie);
     context_destroy(ctx);
 
     return true;
@@ -125,7 +156,9 @@ static void destroy_table(struct sequence** table, size_t table_size)
 }
 
 /*
- * create_table: Create a sequence table for decoding.
+ * create_table: Create a sequence table for decoding. This table is structured
+ *               to hold the indices' corresponding ASCII character in the first
+ *               LZW_CHAR_RANGE entries.
  */
 static struct sequence** create_table(size_t table_size)
 {
@@ -158,7 +191,9 @@ static struct sequence** create_table(size_t table_size)
 }
 
 /*
- * output_sequence: Output the given sequence to the output bitstream.
+ * output_sequence: Output the given sequence to the output bitstream by
+ *                  converting it to a string of bytes. Returns true on
+ *                  successful write, or else false.
  */
 static bool output_sequence(struct lzwcontext* ctx, struct sequence* seq)
 {
@@ -179,6 +214,8 @@ static bool output_sequence(struct lzwcontext* ctx, struct sequence* seq)
 /*
  * lzwDecode: Decode the bytes read via read_byte using LZW compression
  *            with variable-width codes, writing the result via write_byte.
+ *            context is the context of the file input/output to be passed
+ *            to the read/write functions.
  */
 bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
         int (*read_byte)(void*),
@@ -209,7 +246,7 @@ bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
         return false;
     }
 
-    // start with a single code read
+    // read a single code, output it, and check the code width
     code_t current_code;
     code_t prev_code = ins_read_bits(ctx->ins, current_bits);
 

@@ -1,3 +1,7 @@
+/*
+ * config.h: LZW-related configurations.
+ */
+
 #ifndef CONFIG_H_
 #define CONFIG_H_
 

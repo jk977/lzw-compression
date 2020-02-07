@@ -51,6 +51,7 @@ struct sequence* seq_copy(struct sequence const* seq)
         return NULL;
     }
 
+    // only copy the meaningful characters, ignoring the garbage
     memcpy(content_copy, seq->content, seq->used);
 
     copy->content = content_copy;
@@ -72,29 +73,6 @@ void seq_destroy(struct sequence* seq)
     free(seq);
 }
 
-void seq_clear(struct sequence* seq)
-{
-    seq->used = 0;
-}
-
-/*
- * seq_as_cstr: Converts sequence to C-string. The result must be freed by
- *              the caller using free().
- */
-char* seq_to_cstr(struct sequence* seq)
-{
-    char* result = malloc(seq->used + 1);
-
-    if (result == NULL) {
-        return NULL;
-    }
-
-    strncpy(result, seq->content, seq->used);
-    result[seq->used] = '\0';
-
-    return result;
-}
-
 /*
  * seq_length: Get the length of the sequence, excluding the null byte.
  */
@@ -106,15 +84,13 @@ size_t seq_length(struct sequence const* seq)
 /*
  * seq_get: Gets the character at the given index, or -1 if index is invalid.
  */
-int seq_get(struct sequence* seq, size_t i)
+int seq_get(struct sequence* seq, size_t index)
 {
-    char result = -1;
-
-    if (seq->used > i) {
-        result = seq->content[i];
+    if (seq->used <= index) {
+        return -1;
     }
 
-    return result;
+    return seq->content[index];
 }
 
 /*
@@ -155,14 +131,15 @@ bool seq_push(struct sequence* seq, char c)
 
     if (seq->used == seq->length) {
         // not enough space, so double the buffer size first
-        char* new_content = realloc(seq->content, seq->length * 2);
+        size_t const new_length = seq->length * 2;
+        char* new_content = realloc(seq->content, new_length);
 
         if (new_content == NULL) {
             return false;
         }
 
         seq->content = new_content;
-        seq->length *= 2;
+        seq->length = new_length;
     }
 
     seq->content[seq->used] = c;
@@ -188,7 +165,35 @@ int seq_pop(struct sequence* seq)
 }
 
 /*
- * seq_cmp: Functionally identical to strcmp().
+ * seq_clear: Clear the sequence but keep any previously allocated memory.
+ */
+void seq_clear(struct sequence* seq)
+{
+    seq->used = 0;
+}
+
+/*
+ * seq_as_cstr: Converts sequence to C-string. The result must be freed by
+ *              the caller with free().
+ */
+char* seq_to_cstr(struct sequence* seq)
+{
+    char* result = malloc(seq->used + 1);
+
+    if (result == NULL) {
+        return NULL;
+    }
+
+    strncpy(result, seq->content, seq->used);
+    result[seq->used] = '\0';
+
+    return result;
+}
+
+/*
+ * seq_cmp: Functionally identical to strcmp() -- returns
+ *          0 if sequences are equal, -1 if lhs is lexicographically
+ *          ordered before rhs, and 1 otherwise.
  */
 int seq_cmp(struct sequence const* lhs, struct sequence const* rhs)
 {

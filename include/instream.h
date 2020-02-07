@@ -1,3 +1,7 @@
+/*
+ * instream.h: Input stream that reads a variable number of bits at a time.
+ */
+
 #ifndef INSTREAM_H_
 #define INSTREAM_H_
 

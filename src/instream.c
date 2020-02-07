@@ -56,15 +56,21 @@ static void add_to_buffer(struct instream* ins, unsigned char bits, size_t bit_c
         return;
     }
 
+    // information about the remaining buffer space:
+    // buffer_avail is the amount of bits not containing data, and
+    // unused_buffer_space is the amount of bits that will not be affected
+    // by adding the bits to the buffer.
     size_t const buffer_avail = BITS_IN(ins->buffer) - ins->bufsize;
     size_t const unused_buffer_space = buffer_avail - bit_count;
 
     assert(bit_count <= CHAR_BIT);
     assert(bit_count <= buffer_avail);
 
+    // extract the bits to be added and zero out the unused bits
     size_t const unused_bit_count = CHAR_BIT - bit_count;
     uint32_t const used_bits = bits & (UINT32_MAX << unused_bit_count);
 
+    // find out if the used bits need to be shifted, and in what direction
     if (unused_buffer_space == bit_count) {
         ins->buffer |= used_bits >> unused_bit_count;
     } else if (unused_buffer_space < bit_count) {
@@ -91,11 +97,13 @@ static int32_t flush_buffer(struct instream* ins, size_t bit_count)
         ins->bufsize :
         bit_count;
 
-    size_t const align_distance = BITS_IN(ins->buffer) - bits_needed;
-
+    // extract the important bits from the buffer via masking,
+    // then right-align them before returning.
     uint32_t const mask = UINT32_MAX << (BITS_IN(ins->buffer) - bits_needed);
+    size_t const align_distance = BITS_IN(ins->buffer) - bits_needed;
     uint32_t result = (ins->buffer & mask) >> align_distance;
 
+    // update the buffer info to reflect the flush
     ins->buffer = ins->buffer << bits_needed;
     ins->bufsize -= bits_needed;
 

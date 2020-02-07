@@ -1,3 +1,7 @@
+/*
+ * lzw.h: An LZW compression API with variable-width codes.
+ */
+
 #ifndef LZW_H_
 #define LZW_H_
 

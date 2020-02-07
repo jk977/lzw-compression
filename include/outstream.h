@@ -1,3 +1,7 @@
+/*
+ * outstream.h: Output stream that writes a variable number of bits at a time.
+ */
+
 #ifndef OUTSTREAM_H_
 #define OUTSTREAM_H_
 

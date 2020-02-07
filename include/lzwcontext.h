@@ -1,9 +1,14 @@
+/*
+ * lzwcontext.h: Helper structure for the implementation of the LZW algorithm.
+ *               Because it's meant to reduce boilerplate and manage pointers
+ *               rather than being an object-style structure, it is not opaque.
+ */
+
 #ifndef LZW_CONTEXT_H_
 #define LZW_CONTEXT_H_
 
 #include "outstream.h"
 #include "instream.h"
-#include "trie.h"
 #include "sequence.h"
 
 #include <stddef.h>
@@ -15,7 +20,6 @@
 struct lzwcontext {
     struct outstream* outs;
     struct instream* ins;
-    struct trie* trie;
     struct sequence* seq;
 };
 
