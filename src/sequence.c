@@ -49,11 +49,16 @@ void seq_destroy(struct sequence* seq)
     free(seq);
 }
 
+void seq_clear(struct sequence* seq)
+{
+    seq->used = 0;
+}
+
 /*
  * seq_as_cstr: Converts sequence to C-string. The result must be freed by
  *              the caller using free().
  */
-char* seq_as_cstr(struct sequence* seq)
+char* seq_to_cstr(struct sequence* seq)
 {
     char* result = malloc(seq->used + 1);
 

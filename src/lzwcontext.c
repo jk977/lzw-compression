@@ -10,7 +10,7 @@ static struct trie* create_trie(void)
 {
     struct trie* trie = trie_init(-1);
 
-    for (size_t i = 0; i < CHILDREN_COUNT; ++i) {
+    for (size_t i = 0; i < TRIE_CHILDREN_COUNT; ++i) {
         char key = (char) i;
 
         if (!trie_insert(trie, &key, 1, i)) {

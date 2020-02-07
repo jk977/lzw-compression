@@ -5,7 +5,7 @@
 
 struct trie {
     value_t value;
-    struct trie* children[CHILDREN_COUNT];
+    struct trie* children[TRIE_CHILDREN_COUNT];
 };
 
 /*
@@ -21,7 +21,7 @@ struct trie* trie_init(value_t value)
 
     trie->value = value;
 
-    for (size_t i = 0; i < CHILDREN_COUNT; ++i) {
+    for (size_t i = 0; i < TRIE_CHILDREN_COUNT; ++i) {
         trie->children[i] = NULL;
     }
 
@@ -37,7 +37,7 @@ void trie_destroy(struct trie* trie)
         return;
     }
 
-    for (size_t i = 0; i < CHILDREN_COUNT; ++i) {
+    for (size_t i = 0; i < TRIE_CHILDREN_COUNT; ++i) {
         trie_destroy(trie->children[i]);
     }
 

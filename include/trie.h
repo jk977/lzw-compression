@@ -6,7 +6,7 @@
 
 #include "types.h"
 
-#define CHILDREN_COUNT 256
+#define TRIE_CHILDREN_COUNT 256
 
 typedef code_t value_t;
 

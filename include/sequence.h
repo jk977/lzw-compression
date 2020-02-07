@@ -9,7 +9,8 @@ struct sequence;
 struct sequence* seq_init(size_t length);
 void seq_destroy(struct sequence* seq);
 
-char* seq_as_cstr(struct sequence* seq);
+void seq_clear(struct sequence* seq);
+char* seq_to_cstr(struct sequence* seq);
 
 size_t seq_length(struct sequence const* seq);
 int seq_get(struct sequence* seq, size_t i);
