@@ -1,8 +1,7 @@
 #include "lzw.h"
 
-#include "bitops.h"
 #include "lzwcontext.h"
-#include "types.h"
+#include "config.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -62,7 +61,7 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
     }
 
     int next;
-    code_t next_code = TRIE_CHILDREN_COUNT;
+    code_t next_code = LZW_CHAR_RANGE;
 
     char* current_str = NULL;
     unsigned int current_bits = start_bits;
@@ -78,8 +77,8 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
                 return false;
             }
 
-            int32_t const code_max = ~0u >> (BITS_IN(code_max) - current_bits);
-            bool needs_expand = next_code >= code_max;
+            int32_t const current_code_max = (1 << current_bits) - 1;
+            bool needs_expand = next_code >= current_code_max;
             bool can_expand = current_bits < max_bits;
 
             // expand the current code width by 1 if it's possible and needed
@@ -114,6 +113,70 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
 }
 
 /*
+ * destroy_table: Free memory allocated in create_table().
+ */
+static void destroy_table(struct sequence** table, size_t table_size)
+{
+    for (size_t i = 0; i < table_size; ++i) {
+        seq_destroy(table[i]);
+    }
+
+    free(table);
+}
+
+/*
+ * create_table: Create a sequence table for decoding.
+ */
+static struct sequence** create_table(size_t table_size)
+{
+    struct sequence** table = malloc(sizeof(*table) * table_size);
+
+    if (table == NULL) {
+        return NULL;
+    }
+
+    // initialize everything to null to prevent garbage data if allocation fails
+    for (size_t i = 0; i < table_size; ++i) {
+        table[i] = NULL;
+    }
+
+    // initialize the first LZW_CHAR_RANGE entries to their respective characters
+    for (size_t i = 0; i < LZW_CHAR_RANGE; ++i) {
+        struct sequence* seq = seq_init(1);
+        char c = (char) i;
+
+        if (seq == NULL || !seq_push(seq, c)) {
+            // clean up table instead of trying to recover on failure
+            destroy_table(table, table_size);
+            return NULL;
+        }
+
+        table[i] = seq;
+    }
+
+    return table;
+}
+
+/*
+ * output_sequence: Output the given sequence to the output bitstream.
+ */
+static bool output_sequence(struct lzwcontext* ctx, struct sequence* seq)
+{
+    char* str = seq_to_cstr(seq);
+
+    if (str == NULL) {
+        return false;
+    }
+
+    for (size_t i = 0; i < seq_length(seq); ++i) {
+        outs_write_bits(ctx->outs, str[i], CHAR_BIT);
+    }
+
+    free(str);
+    return true;
+}
+
+/*
  * lzwDecode: Decode the bytes read via read_byte using LZW compression
  *            with variable-width codes, writing the result via write_byte.
  */
@@ -132,15 +195,71 @@ bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
         return false;
     }
 
-    code_t current_code;
     unsigned int current_bits = start_bits;
 
+    // track the max values for the current and max bits for adjusting code width
+    int32_t const code_max = (1 << max_bits) - 1;
+    int32_t current_code_max = (1 << current_bits) - 1;
+
+    // create a table large enough to hold all potential codes
+    ssize_t next_index = LZW_CHAR_RANGE;
+    struct sequence** table = create_table(code_max);
+
+    if (table == NULL) {
+        return false;
+    }
+
+    // start with a single code read
+    code_t current_code;
+    code_t prev_code = ins_read_bits(ctx->ins, current_bits);
+
+    if (!output_sequence(ctx, table[prev_code])) {
+        return false;
+    }
+
+    if (next_index >= current_code_max) {
+        ++current_bits;
+    }
+
     while ((current_code = ins_read_bits(ctx->ins, current_bits)) != EOF) {
-        // TODO: decode sequence of codes and write them 1 byte at a time
-        unsigned char next_output = '\0';
-        outs_write_bits(ctx->outs, next_output, CHAR_BIT);
+        char c;
+
+        // check if current_code is in the table
+        if (current_code < code_max) {
+            c = seq_first(table[current_code]);
+        } else {
+            c = seq_first(table[prev_code]);
+        }
+
+        if (next_index < code_max) {
+            // table is not full; add new entry
+            struct sequence* new_entry = seq_copy(table[prev_code]);
+
+            if (new_entry == NULL) {
+                return false;
+            }
+
+            seq_push(new_entry, c);
+            table[next_index] = new_entry;
+            ++next_index;
+        }
+
+        if (!output_sequence(ctx, table[current_code])) {
+            return false;
+        }
+
+        prev_code = current_code;
+        current_code_max = (1 << current_bits) - 1;
+
+        // expand code width if needed
+        if (next_index >= current_code_max) {
+            ++current_bits;
+        }
+
     }
 
     context_destroy(ctx);
-    return false;
+    destroy_table(table, code_max);
+
+    return true;
 }

@@ -60,8 +60,8 @@ void context_destroy(struct lzwcontext* ctx)
     ins_destroy(ctx->ins);
     outs_destroy(ctx->outs);
     trie_destroy(ctx->trie);
+    seq_destroy(ctx->seq);
 
-    free(ctx->seq);
     free(ctx);
 }
 

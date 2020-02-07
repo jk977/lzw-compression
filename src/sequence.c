@@ -37,6 +37,29 @@ struct sequence* seq_init(size_t length)
 }
 
 /*
+ * seq_copy: Create a duplicate of the given sequence.
+ */
+struct sequence* seq_copy(struct sequence const* seq)
+{
+    struct sequence* copy = seq_init(seq->used);
+    char* content_copy = malloc(seq->used);
+
+    if (copy == NULL || content_copy == NULL) {
+        free(content_copy);
+        free(copy);
+
+        return NULL;
+    }
+
+    memcpy(content_copy, seq->content, seq->used);
+
+    copy->content = content_copy;
+    copy->used = seq->used;
+
+    return copy;
+}
+
+/*
  * seq_destroy: Free the sequence created by seq_init().
  */
 void seq_destroy(struct sequence* seq)
@@ -92,6 +115,19 @@ int seq_get(struct sequence* seq, size_t i)
     }
 
     return result;
+}
+
+/*
+ * seq_first: Gets the first element of the sequence,
+ *            or -1 if the sequence is empty.
+ */
+int seq_first(struct sequence* seq)
+{
+    if (seq->used == 0) {
+        return -1;
+    }
+
+    return seq_get(seq, 0);
 }
 
 /*

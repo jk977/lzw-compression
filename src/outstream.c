@@ -66,12 +66,12 @@ void outs_write_bits(struct outstream* outs, uint32_t bits, size_t bit_count)
         outs_flush(outs);
     } else if (bit_count < buffer_avail) {
         // add bits to the buffer without flushing
-        outs->buffer |= SH_LEFT(bits, buffer_avail - bit_count);
+        outs->buffer |= bits << (buffer_avail - bit_count);
         outs->bufsize += bit_count;
     } else {
         // more bits requested to be written than the buffer can hold.
         // fill the buffer, flush, then repeat for the remaining bits.
-        outs->buffer |= SH_RIGHT(bits, bit_count - buffer_avail);
+        outs->buffer |= bits >> (bit_count - buffer_avail);
         outs->bufsize = CHAR_BIT;
         outs_flush(outs);
 

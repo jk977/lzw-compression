@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#include "types.h"
+#include "config.h"
 
 #define TRIE_CHILDREN_COUNT 256
 

@@ -63,14 +63,14 @@ static void add_to_buffer(struct instream* ins, unsigned char bits, size_t bit_c
     assert(bit_count <= buffer_avail);
 
     size_t const unused_bit_count = CHAR_BIT - bit_count;
-    uint32_t const used_bits = bits & (~0u << unused_bit_count);
+    uint32_t const used_bits = bits & (UINT32_MAX << unused_bit_count);
 
     if (unused_buffer_space == bit_count) {
-        ins->buffer |= SH_RIGHT(used_bits, unused_bit_count);
+        ins->buffer |= used_bits >> unused_bit_count;
     } else if (unused_buffer_space < bit_count) {
-        ins->buffer |= SH_RIGHT(used_bits, CHAR_BIT - unused_buffer_space);
+        ins->buffer |= used_bits >> (CHAR_BIT - unused_buffer_space);
     } else {
-        ins->buffer |= SH_LEFT(used_bits, unused_buffer_space - unused_bit_count);
+        ins->buffer |= used_bits << (unused_buffer_space - unused_bit_count);
     }
 
     ins->bufsize += bit_count;
@@ -93,10 +93,10 @@ static int32_t flush_buffer(struct instream* ins, size_t bit_count)
 
     size_t const align_distance = BITS_IN(ins->buffer) - bits_needed;
 
-    uint32_t const mask = SH_LEFT(~0u, BITS_IN(ins->buffer) - bits_needed);
-    uint32_t result = SH_RIGHT(ins->buffer & mask, align_distance);
+    uint32_t const mask = UINT32_MAX << (BITS_IN(ins->buffer) - bits_needed);
+    uint32_t result = (ins->buffer & mask) >> align_distance;
 
-    ins->buffer = SH_LEFT(ins->buffer, bits_needed);
+    ins->buffer = ins->buffer << bits_needed;
     ins->bufsize -= bits_needed;
 
     return (int32_t) result;
@@ -140,7 +140,7 @@ int32_t ins_read_bits(struct instream* ins, size_t bit_count)
         // too many bits read, so fill the buffer, flush it,
         // then store the leftovers
         unsigned int const leftover_bit_count = CHAR_BIT - bits_needed;
-        unsigned char const leftover_bits = SH_LEFT(next_byte, bits_needed);
+        unsigned char const leftover_bits = next_byte << bits_needed;
 
         add_to_buffer(ins, next_byte, bits_needed);
         result = flush_buffer(ins, bit_count);
