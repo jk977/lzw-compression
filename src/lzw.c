@@ -259,18 +259,16 @@ bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
     }
 
     while ((current_code = ins_read_bits(ctx->ins, current_bits)) != EOF) {
-        char c;
+        bool const table_has_code = current_code < code_max;
+        struct sequence* const current_seq = table_has_code ?
+            table[current_code] :
+            table[prev_code];
 
-        // check if current_code is in the table
-        if (current_code < code_max) {
-            c = seq_first(table[current_code]);
-        } else {
-            c = seq_first(table[prev_code]);
-        }
+        char c = seq_first(current_seq);
 
         if (next_index < code_max) {
             // table is not full; add new entry
-            struct sequence* new_entry = seq_copy(table[prev_code]);
+            struct sequence* const new_entry = seq_copy(table[prev_code]);
 
             if (new_entry == NULL) {
                 return false;

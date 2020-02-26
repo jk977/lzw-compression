@@ -104,7 +104,7 @@ static int32_t flush_buffer(struct instream* ins, size_t bit_count)
     uint32_t result = (ins->buffer & mask) >> align_distance;
 
     // update the buffer info to reflect the flush
-    ins->buffer = ins->buffer << bits_needed;
+    ins->buffer <<= bits_needed;
     ins->bufsize -= bits_needed;
 
     return (int32_t) result;
