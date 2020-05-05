@@ -24,7 +24,7 @@ endif
 
 cli: CFLAGS += -D_POSIX_C_SOURCE=2
 cli: lib
-	$(CC) -L./build $(CFLAGS) $(OBJECT_FILES) $(SRC)/main.c -llzw -o $(BUILD)/main
+	$(CC) -L./build $(CFLAGS) $(OBJECT_FILES) $(SRC)/main.c -llzw -o $(BUILD)/lzw
 
 lib: paths clean $(OBJECT_FILES)
 	ar rcs $(BUILD)/liblzw.a $(OBJECT_FILES)

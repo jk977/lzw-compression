@@ -5,7 +5,7 @@
 
 #include <unistd.h>
 
-#define START_BITS  8
+#define INIT_BITS   8
 #define MAX_BITS    24
 
 static char const* program_name;
@@ -13,42 +13,33 @@ static char const* program_name;
 static void usage(FILE* stream)
 {
     fprintf(stream, "Usage:\n");
-    fprintf(stream, "\t%s -d IN_PATH OUT_PATH\n", program_name);
-    fprintf(stream, "\t%s -e IN_PATH OUT_PATH\n", program_name);
+    fprintf(stream, "\t%s (-d | -e)\n", program_name);
+    fprintf(stream, "\n");
 
     fprintf(stream, "Options:\n");
     fprintf(stream, "\t-d\tDecode IN_PATH and store the result in OUT_PATH\n");
     fprintf(stream, "\t-e\tEncode IN_PATH and store the result in OUT_PATH\n");
+    fprintf(stream, "\n");
+
+    fprintf(stream, "Encode or decode the bytes read from stdin using LZW\n");
+    fprintf(stream, "compression and print the result to stdout.\n");
 }
 
-static int read_byte(void* context)
+static int read_byte(void* ctx)
 {
-    FILE** streams = context;
-    return fgetc(streams[0]);
+    return fgetc(ctx);
 }
 
-static void write_byte(unsigned char byte, void* context)
+static void print_byte(unsigned char byte, void* ctx)
 {
-    FILE** streams = context;
-    fputc(byte, streams[1]);
-}
-
-static FILE* fopen_or_fail(char const* pathname, char const* mode)
-{
-    FILE* stream = fopen(pathname, mode);
-
-    if (stream == NULL) {
-        perror("fopen");
-        exit(EXIT_FAILURE);
-    }
-
-    return stream;
+    (void) ctx;
+    putchar(byte);
 }
 
 int main(int argc, char** argv) {
     program_name = argv[0];
 
-    if (argc != 4) {
+    if (argc != 2) {
         usage(stderr);
         return EXIT_FAILURE;
     }
@@ -56,7 +47,7 @@ int main(int argc, char** argv) {
     enum { ENCODE, DECODE } mode = ENCODE;
     int opt;
 
-    while ((opt = getopt(argc, argv, "de")) != -1) {
+    while ((opt = getopt(argc, argv, "deh")) != -1) {
         switch (opt) {
         case 'd':
             mode = DECODE;
@@ -64,34 +55,23 @@ int main(int argc, char** argv) {
         case 'e':
             mode = ENCODE;
             break;
+        case 'h':
+            usage(stdout);
+            return EXIT_SUCCESS;
         default:
             usage(stderr);
             return EXIT_FAILURE;
         }
     }
 
-    if (optind != 2) {
-        usage(stderr);
-        return EXIT_FAILURE;
-    }
-
-    char const* in_path = argv[optind];
-    char const* out_path = argv[optind + 1];
-
-    FILE* in_stream = fopen_or_fail(in_path, "r");
-    FILE* out_stream = fopen_or_fail(out_path, "w");
-    FILE* streams[] = { in_stream, out_stream };
-
     bool success;
 
     switch (mode) {
     case ENCODE:
-        success = lzw_encode(START_BITS, MAX_BITS, read_byte, write_byte,
-                             streams);
+        success = lzw_encode(INIT_BITS, MAX_BITS, read_byte, print_byte, stdin);
         break;
     case DECODE:
-        success = lzw_decode(START_BITS, MAX_BITS, read_byte, write_byte,
-                             streams);
+        success = lzw_decode(INIT_BITS, MAX_BITS, read_byte, print_byte, stdin);
         break;
     }
 
