@@ -20,11 +20,13 @@ endif
 # build targets #
 #################
 
-.PHONY: all tests paths clean
+.PHONY: all lib tests paths clean
 
-all: CFLAGS += -D_POSIX_C_SOURCE=200809L
-all: paths clean $(OBJECTS)
+cli: CFLAGS += -D_POSIX_C_SOURCE=2
+cli: lib
 	$(CC) $(CFLAGS) $(OBJECT_FILES) $(SRC)/main.c -o $(BUILD)/main
+
+lib: paths clean $(OBJECTS)
 
 %.o: $(SRC)/%.c
 	$(CC) $(CFLAGS) $(SRC)/$*.c -c -o $(BUILD)/$*.o
