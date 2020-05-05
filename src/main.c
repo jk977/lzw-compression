@@ -26,10 +26,10 @@ void write_byte(unsigned char byte, void* context)
 
 static bool encode(void)
 {
-    printf("Calling lzwEncode() on %s (out: %s)...\n", encode_inpath, encode_outpath);
+    printf("Calling lzw_encode() on %s (out: %s)...\n", encode_inpath, encode_outpath);
 
     FILE* streams[] = { fopen(encode_inpath, "r"), fopen(encode_outpath, "w") };
-    bool success = lzwEncode(start_bits, max_bits, read_byte, write_byte, streams);
+    bool success = lzw_encode(start_bits, max_bits, read_byte, write_byte, streams);
 
     fclose(streams[0]);
     fclose(streams[1]);
@@ -40,10 +40,10 @@ static bool encode(void)
 
 static bool decode(void)
 {
-    printf("Calling lzwEncode() on %s (out: %s)...\n", decode_inpath, decode_outpath);
+    printf("Calling lzw_decode() on %s (out: %s)...\n", decode_inpath, decode_outpath);
 
     FILE* streams[] = { fopen(decode_inpath, "r"), fopen(decode_outpath, "w") };
-    bool success = lzwDecode(start_bits, max_bits, read_byte, write_byte, streams);
+    bool success = lzw_decode(start_bits, max_bits, read_byte, write_byte, streams);
 
     fclose(streams[0]);
     fclose(streams[1]);

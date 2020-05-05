@@ -7,12 +7,12 @@
 
 #include <stdbool.h>
 
-bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
+bool lzw_encode(unsigned int start_bits, unsigned int max_bits,
         int (*read_byte)(void* context),
         void (*write_byte)(unsigned char c, void* context),
         void* context);
 
-bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
+bool lzw_decode(unsigned int start_bits, unsigned int max_bits,
         int (*read_byte)(void* context),
         void (*write_byte)(unsigned char c, void* context),
         void* context);

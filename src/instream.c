@@ -19,6 +19,7 @@ struct instream {
 /*
  * ins_init: Initialize an input bitstream on the heap.
  */
+
 struct instream* ins_init(void* context,
         int (*read_bits)(void* context))
 {
@@ -40,6 +41,7 @@ struct instream* ins_init(void* context,
 /*
  * ins_destroy: Free the structure allocated by ins_init().
  */
+
 void ins_destroy(struct instream* ins)
 {
     free(ins);
@@ -50,6 +52,7 @@ void ins_destroy(struct instream* ins)
  *                The input is assumed to be at most a byte, which is
  *                enforced by ins_read_bits() before calling this function.
  */
+
 static void add_to_buffer(struct instream* ins, unsigned char bits, size_t bit_count)
 {
     if (bit_count == 0) {
@@ -87,6 +90,7 @@ static void add_to_buffer(struct instream* ins, unsigned char bits, size_t bit_c
  *               collects the data stored in the buffer, clears the buffer,
  *               and returns the data. Returns EOF otherwise.
  */
+
 static int32_t flush_buffer(struct instream* ins, size_t bit_count)
 {
     if (ins->bufsize < bit_count) {
@@ -115,6 +119,7 @@ static int32_t flush_buffer(struct instream* ins, size_t bit_count)
  *                If bit_count is greater than the space allowed by
  *                the internal buffer, returns EOF.
  */
+
 int32_t ins_read_bits(struct instream* ins, size_t bit_count)
 {
     if (bit_count > BITS_IN(ins->buffer)) {

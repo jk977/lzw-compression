@@ -12,6 +12,7 @@ struct sequence {
 /*
  * seq_init: Initialize an empty sequence.
  */
+
 struct sequence* seq_init(size_t length)
 {
     if (length == 0) {
@@ -39,6 +40,7 @@ struct sequence* seq_init(size_t length)
 /*
  * seq_copy: Create a duplicate of the given sequence.
  */
+
 struct sequence* seq_copy(struct sequence const* seq)
 {
     struct sequence* copy = seq_init(seq->used);
@@ -63,6 +65,7 @@ struct sequence* seq_copy(struct sequence const* seq)
 /*
  * seq_destroy: Free the sequence created by seq_init().
  */
+
 void seq_destroy(struct sequence* seq)
 {
     if (seq == NULL) {
@@ -76,6 +79,7 @@ void seq_destroy(struct sequence* seq)
 /*
  * seq_length: Get the length of the sequence, excluding the null byte.
  */
+
 size_t seq_length(struct sequence const* seq)
 {
     return seq->used;
@@ -84,6 +88,7 @@ size_t seq_length(struct sequence const* seq)
 /*
  * seq_get: Gets the character at the given index, or -1 if index is invalid.
  */
+
 int seq_get(struct sequence* seq, size_t index)
 {
     if (seq->used <= index) {
@@ -97,6 +102,7 @@ int seq_get(struct sequence* seq, size_t index)
  * seq_first: Gets the first element of the sequence,
  *            or -1 if the sequence is empty.
  */
+
 int seq_first(struct sequence* seq)
 {
     if (seq->used == 0) {
@@ -110,6 +116,7 @@ int seq_first(struct sequence* seq)
  * seq_last: Gets the last element of the sequence,
  *           or -1 if the sequence is empty.
  */
+
 int seq_last(struct sequence* seq)
 {
     if (seq->used == 0) {
@@ -123,6 +130,7 @@ int seq_last(struct sequence* seq)
  * seq_push: Adds the given entry to the end of the sequence.
  *           Returns true on successful addition, otherwise false.
  */
+
 bool seq_push(struct sequence* seq, char c)
 {
     if (seq == NULL) {
@@ -152,6 +160,7 @@ bool seq_push(struct sequence* seq, char c)
  * seq_pop: Shrinks the sequence by 1 and returns the element
  *          that was removed, or -1 if sequence is empty.
  */
+
 int seq_pop(struct sequence* seq)
 {
     if (seq->used == 0) {
@@ -167,6 +176,7 @@ int seq_pop(struct sequence* seq)
 /*
  * seq_clear: Clear the sequence but keep any previously allocated memory.
  */
+
 void seq_clear(struct sequence* seq)
 {
     seq->used = 0;
@@ -176,6 +186,7 @@ void seq_clear(struct sequence* seq)
  * seq_as_cstr: Converts sequence to C-string. The result must be freed by
  *              the caller with free().
  */
+
 char* seq_to_cstr(struct sequence* seq)
 {
     char* result = malloc(seq->used + 1);
@@ -195,19 +206,18 @@ char* seq_to_cstr(struct sequence* seq)
  *          0 if sequences are equal, -1 if lhs is lexicographically
  *          ordered before rhs, and 1 otherwise.
  */
+
 int seq_cmp(struct sequence const* lhs, struct sequence const* rhs)
 {
-    size_t smallest_size = (lhs->used > rhs->used) ?
-        rhs->used :
-        lhs->used;
-
-    return strncmp(lhs->content, rhs->content, smallest_size);
+    size_t const min_len = (lhs->used > rhs->used) ?  rhs->used : lhs->used;
+    return strncmp(lhs->content, rhs->content, min_len);
 }
 
 /*
  * seq_equals: Checks the equality of two sequences, returning true if equal
  *             and false otherwise.
  */
+
 bool seq_equals(struct sequence const* lhs, struct sequence const* rhs)
 {
     return seq_cmp(lhs, rhs) == 0;

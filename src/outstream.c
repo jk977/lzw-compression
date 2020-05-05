@@ -17,6 +17,7 @@ struct outstream {
 /*
  * outs_init: Initialize an output bitstream on the heap.
  */
+
 struct outstream* outs_init(void* context,
         void (*write_byte)(unsigned char c, void* context))
 {
@@ -38,6 +39,7 @@ struct outstream* outs_init(void* context,
 /*
  * outs_destroy: Free the structure allocated by outs_init().
  */
+
 void outs_destroy(struct outstream* outs)
 {
     outs_flush(outs);
@@ -50,6 +52,7 @@ void outs_destroy(struct outstream* outs)
  *                  the given bits before writing. Any amount of bits under
  *                  CHAR_BIT are kept in the buffer for the next write.
  */
+
 void outs_write_bits(struct outstream* outs, uint32_t bits, size_t bit_count)
 {
     if (bit_count > BITS_IN(bits)) {
@@ -84,6 +87,7 @@ void outs_write_bits(struct outstream* outs, uint32_t bits, size_t bit_count)
  *             Since outs_write_bits() ensures the buffer is properly zeroed,
  *             this function does not zero out garbage bits in the buffer.
  */
+
 void outs_flush(struct outstream* outs)
 {
     if (outs->bufsize == 0) {

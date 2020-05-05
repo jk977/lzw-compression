@@ -15,6 +15,7 @@
 /*
  * verify_params: Ensure that the given parameters are valid.
  */
+
 static bool verify_params(unsigned int start_bits, unsigned int max_bits,
         int (*read_byte)(void* context),
         void (*write_byte)(unsigned char c, void* context))
@@ -29,6 +30,7 @@ static bool verify_params(unsigned int start_bits, unsigned int max_bits,
  * create_trie: Initialize the trie to be used in the LZW compression algorithm.
  *              The trie acts as the dictionary in the assignment's given algorithm.
  */
+
 static struct trie* create_trie(void)
 {
     struct trie* trie = trie_init(-1);
@@ -50,6 +52,7 @@ static struct trie* create_trie(void)
  * write_prev_char_code: Looks up the string (i.e., sequence) in the trie and
  *                       writes its code if found. Returns false if not found.
  */
+
 static bool write_prev_char_code(struct lzwcontext* ctx, struct trie* trie,
         unsigned int current_bits, char const* str, size_t length)
 {
@@ -64,12 +67,13 @@ static bool write_prev_char_code(struct lzwcontext* ctx, struct trie* trie,
 }
 
 /*
- * lzwEncode: Encode the bytes read via read_byte using LZW compression
- *            with variable-width codes, writing the result via write_byte.
- *            context is the context of the file input/output to be passed
- *            to the read/write functions.
+ * lzw_encode: Encode the bytes read via read_byte using LZW compression
+ *             with variable-width codes, writing the result via write_byte.
+ *             context is the context of the file input/output to be passed
+ *             to the read/write functions.
  */
-bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
+
+bool lzw_encode(unsigned int start_bits, unsigned int max_bits,
         int (*read_byte)(void*),
         void (*write_byte)(unsigned char, void*),
         void* context)
@@ -146,6 +150,7 @@ bool lzwEncode(unsigned int start_bits, unsigned int max_bits,
 /*
  * destroy_table: Free memory allocated in create_table().
  */
+
 static void destroy_table(struct sequence** table, size_t table_size)
 {
     for (size_t i = 0; i < table_size; ++i) {
@@ -160,6 +165,7 @@ static void destroy_table(struct sequence** table, size_t table_size)
  *               to hold the indices' corresponding ASCII character in the first
  *               LZW_CHAR_RANGE entries.
  */
+
 static struct sequence** create_table(size_t table_size)
 {
     struct sequence** table = malloc(sizeof(*table) * table_size);
@@ -195,6 +201,7 @@ static struct sequence** create_table(size_t table_size)
  *                  converting it to a string of bytes. Returns true on
  *                  successful write, or else false.
  */
+
 static bool output_sequence(struct lzwcontext* ctx, struct sequence* seq)
 {
     char* str = seq_to_cstr(seq);
@@ -212,12 +219,13 @@ static bool output_sequence(struct lzwcontext* ctx, struct sequence* seq)
 }
 
 /*
- * lzwDecode: Decode the bytes read via read_byte using LZW compression
- *            with variable-width codes, writing the result via write_byte.
- *            context is the context of the file input/output to be passed
- *            to the read/write functions.
+ * lzw_decode: Decode the bytes read via read_byte using LZW compression
+ *             with variable-width codes, writing the result via write_byte.
+ *             context is the context of the file input/output to be passed
+ *             to the read/write functions.
  */
-bool lzwDecode(unsigned int start_bits, unsigned int max_bits,
+
+bool lzw_decode(unsigned int start_bits, unsigned int max_bits,
         int (*read_byte)(void*),
         void (*write_byte)(unsigned char, void*),
         void* context)
