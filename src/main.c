@@ -32,56 +32,16 @@ static void write_byte(unsigned char byte, void* context)
     fputc(byte, streams[1]);
 }
 
-static bool encode(char const* in_path, char const* out_path)
+static FILE* fopen_or_fail(char const* pathname, char const* mode)
 {
-    printf("Encoding %s to %s...\n", in_path, out_path);
-    FILE* streams[] = { fopen(in_path, "r"), fopen(out_path, "w") };
+    FILE* stream = fopen(pathname, mode);
 
-    if (streams[0] == NULL || streams[1] == NULL) {
-        if (streams[0] != NULL) {
-            fclose(streams[0]);
-        } else if (streams[1] != NULL) {
-            fclose(streams[1]);
-        }
-
-        return false;
+    if (stream == NULL) {
+        perror("fopen");
+        exit(EXIT_FAILURE);
     }
 
-    bool const success = lzw_encode(START_BITS, MAX_BITS, read_byte, write_byte,
-                                    streams);
-
-    fclose(streams[0]);
-    fclose(streams[1]);
-    puts("Done!");
-
-    return success;
-}
-
-static bool decode(char const* in_path, char const* out_path)
-{
-    printf("Calling lzw_decode() on %s (out: %s)...\n",
-           in_path, out_path);
-
-    FILE* streams[] = { fopen(in_path, "r"), fopen(out_path, "w") };
-
-    if (streams[0] == NULL || streams[1] == NULL) {
-        if (streams[0] != NULL) {
-            fclose(streams[0]);
-        } else if (streams[1] != NULL) {
-            fclose(streams[1]);
-        }
-
-        return false;
-    }
-
-    bool success = lzw_decode(START_BITS, MAX_BITS, read_byte, write_byte,
-                              streams);
-
-    fclose(streams[0]);
-    fclose(streams[1]);
-    puts("Done!");
-
-    return success;
+    return stream;
 }
 
 int main(int argc, char** argv) {
@@ -116,14 +76,21 @@ int main(int argc, char** argv) {
 
     char const* in_path = argv[optind];
     char const* out_path = argv[optind + 1];
+
+    FILE* in_stream = fopen_or_fail(in_path, "r");
+    FILE* out_stream = fopen_or_fail(out_path, "w");
+    FILE* streams[] = { in_stream, out_stream };
+
     bool success;
 
     switch (mode) {
     case ENCODE:
-        success = encode(in_path, out_path);
+        success = lzw_encode(START_BITS, MAX_BITS, read_byte, write_byte,
+                             streams);
         break;
     case DECODE:
-        success = decode(in_path, out_path);
+        success = lzw_decode(START_BITS, MAX_BITS, read_byte, write_byte,
+                             streams);
         break;
     }
 
