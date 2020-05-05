@@ -12,8 +12,9 @@ static char const* program_name;
 
 static void usage(FILE* stream)
 {
-    fprintf(stream, "usage: %s -d IN_PATH OUT_PATH\n", program_name);
-    fprintf(stream, "usage: %s -e IN_PATH OUT_PATH\n\n", program_name);
+    fprintf(stream, "Usage:\n");
+    fprintf(stream, "\t%s -d IN_PATH OUT_PATH\n", program_name);
+    fprintf(stream, "\t%s -e IN_PATH OUT_PATH\n", program_name);
 
     fprintf(stream, "Options:\n");
     fprintf(stream, "\t-d\tDecode IN_PATH and store the result in OUT_PATH\n");
