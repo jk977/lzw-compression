@@ -24,12 +24,13 @@ endif
 
 cli: CFLAGS += -D_POSIX_C_SOURCE=2
 cli: lib
-	$(CC) $(CFLAGS) $(OBJECT_FILES) $(SRC)/main.c -o $(BUILD)/main
+	$(CC) -L./build $(CFLAGS) $(OBJECT_FILES) $(SRC)/main.c -llzw -o $(BUILD)/main
 
-lib: paths clean $(OBJECTS)
+lib: paths clean $(OBJECT_FILES)
+	ar rcs $(BUILD)/liblzw.a $(OBJECT_FILES)
 
-%.o: $(SRC)/%.c
-	$(CC) $(CFLAGS) $(SRC)/$*.c -c -o $(BUILD)/$*.o
+$(BUILD)/%.o: $(SRC)/%.c
+	$(CC) $(CFLAGS) $(SRC)/$*.c -c -o $@
 
 tests: CFLAGS += -UNDEBUG -Wno-error
 tests: paths test-trie test-outstream test-instream test-lzw
