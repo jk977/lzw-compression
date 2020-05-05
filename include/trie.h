@@ -28,7 +28,8 @@ void trie_destroy(struct trie* trie);
  *      NULL if not found.
  *  - contains() returns true if the key is in the trie, otherwise false.
  */
-bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t value);
+bool trie_insert(struct trie* trie, char const* key, size_t key_length,
+        value_t value);
 value_t* trie_lookup(struct trie* trie, char const* key, size_t key_length);
 bool trie_contains(struct trie* trie, char const* key, size_t key_length);
 

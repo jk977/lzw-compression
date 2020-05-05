@@ -54,7 +54,8 @@ void trie_destroy(struct trie* trie)
  *                 and return a pointer to the resulting subtrie.
  */
 
-static struct trie* get_subtrie_at(struct trie* trie, char const* key, size_t key_length)
+static struct trie* get_subtrie_at(struct trie* trie, char const* key,
+        size_t key_length)
 {
     if (trie == NULL || key == NULL) {
         return NULL;
@@ -81,12 +82,13 @@ static struct trie* get_subtrie_at(struct trie* trie, char const* key, size_t ke
 }
 
 /*
- * trie_insert: Inserts the key into the trie, returning false if allocation
- *              fails or if the first (key_length-1) characters of the key aren't
- *              already present. Returns true on successful insertion.
+ * trie_insert: Inserts the key into the trie, returning `false` if allocation
+ *              fails or if the first `key_length - 1` characters of the key
+ *              aren't already present. Returns `true` on successful insertion.
  */
 
-bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t value)
+bool trie_insert(struct trie* trie, char const* key, size_t key_length,
+        value_t value)
 {
     if (trie == NULL || key == NULL) {
         return false;
@@ -99,7 +101,7 @@ bool trie_insert(struct trie* trie, char const* key, size_t key_length, value_t 
     size_t const entry_index = (size_t) new_entry;
 
     if (target == NULL || target->children[entry_index] != NULL) {
-        // expect target to be non-null, with a null child where the new entry is
+        // expect target to be non-null, with the new entry not present
         return false;
     }
 

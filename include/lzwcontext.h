@@ -17,16 +17,17 @@
  * helper struct to make the encode and decode functions more readable
  * and reduce boilerplate.
  */
+
 struct lzwcontext {
     struct outstream* outs;
     struct instream* ins;
     struct sequence* seq;
 };
 
-struct lzwcontext* context_init(size_t seq_length, void* context,
+struct lzwcontext* ctx_init(size_t seq_len, void* stream_ctx,
         int (*read_byte)(void*),
         void (*write_byte)(unsigned char, void*));
 
-void context_destroy(struct lzwcontext* ctx);
+void ctx_destroy(struct lzwcontext* ctx);
 
 #endif // LZW_CONTEXT_H_

@@ -4,10 +4,11 @@
 #include <string.h>
 
 /*
- * context_init: Initialize the context struct to be used in
- *               lzwEncode and lzwDecode.
+ * ctx_init: Initialize the context struct to be used in
+ *           `lzw_encode()` and `lzw_decode()`.
  */
-struct lzwcontext* context_init(size_t seq_length, void* context,
+
+struct lzwcontext* ctx_init(size_t seq_len, void* stream_ctx,
         int (*read_byte)(void*),
         void (*write_byte)(unsigned char, void*))
 {
@@ -17,14 +18,12 @@ struct lzwcontext* context_init(size_t seq_length, void* context,
         return NULL;
     }
 
-    ctx->outs = outs_init(context, write_byte);
-    ctx->ins = ins_init(context, read_byte);
-    ctx->seq = seq_init(seq_length);
+    ctx->outs = outs_init(stream_ctx, write_byte);
+    ctx->ins = ins_init(stream_ctx, read_byte);
+    ctx->seq = seq_init(seq_len);
 
-    if (ctx->outs == NULL
-            || ctx->ins == NULL
-            || ctx->seq == NULL) {
-        context_destroy(ctx);
+    if (ctx->outs == NULL || ctx->ins == NULL || ctx->seq == NULL) {
+        ctx_destroy(ctx);
         return NULL;
     }
 
@@ -32,9 +31,10 @@ struct lzwcontext* context_init(size_t seq_length, void* context,
 }
 
 /*
- * context_destroy: Free the structure initialized by context_init().
+ * ctx_destroy: Free the structure initialized by `ctx_init()`.
  */
-void context_destroy(struct lzwcontext* ctx)
+
+void ctx_destroy(struct lzwcontext* ctx)
 {
     ins_destroy(ctx->ins);
     outs_destroy(ctx->outs);

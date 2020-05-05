@@ -53,7 +53,8 @@ void ins_destroy(struct instream* ins)
  *                enforced by ins_read_bits() before calling this function.
  */
 
-static void add_to_buffer(struct instream* ins, unsigned char bits, size_t bit_count)
+static void add_to_buffer(struct instream* ins, unsigned char bits,
+        size_t bit_count)
 {
     if (bit_count == 0) {
         return;

@@ -200,25 +200,3 @@ char* seq_to_cstr(struct sequence* seq)
 
     return result;
 }
-
-/*
- * seq_cmp: Functionally identical to strcmp() -- returns
- *          0 if sequences are equal, -1 if lhs is lexicographically
- *          ordered before rhs, and 1 otherwise.
- */
-
-int seq_cmp(struct sequence const* lhs, struct sequence const* rhs)
-{
-    size_t const min_len = (lhs->used > rhs->used) ?  rhs->used : lhs->used;
-    return strncmp(lhs->content, rhs->content, min_len);
-}
-
-/*
- * seq_equals: Checks the equality of two sequences, returning true if equal
- *             and false otherwise.
- */
-
-bool seq_equals(struct sequence const* lhs, struct sequence const* rhs)
-{
-    return seq_cmp(lhs, rhs) == 0;
-}
