@@ -81,7 +81,6 @@ bool lzw_encode(unsigned int start_bits, unsigned int max_bits,
         return false;
     }
 
-    // boilerplate initializations, etc.
     size_t const init_seq_size = 1;
     struct lzwcontext* ctx = ctx_init(init_seq_size, stream_ctx,
                                       read_byte, write_byte);

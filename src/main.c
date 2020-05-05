@@ -3,35 +3,52 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static char const* encode_inpath = "lzw_encode_in.txt";
-static char const* encode_outpath = "lzw_encode_out.txt";
+#include <unistd.h>
 
-static char const* decode_inpath = "lzw_encode_out.txt";
-static char const* decode_outpath = "lzw_decode_out.txt";
+static char const* program_name;
 
 static unsigned int const start_bits = 8;
 static unsigned int const max_bits = 24;
 
-int read_byte(void* context)
+static void usage(FILE* stream)
+{
+    fprintf(stream, "usage: %s -d IN_PATH OUT_PATH\n", program_name);
+    fprintf(stream, "usage: %s -e IN_PATH OUT_PATH\n\n", program_name);
+
+    fprintf(stream, "Options:\n");
+    fprintf(stream, "\t-d\tDecode IN_PATH and store the result in OUT_PATH\n");
+    fprintf(stream, "\t-e\tEncode IN_PATH and store the result in OUT_PATH\n");
+}
+
+static int read_byte(void* context)
 {
     FILE** streams = context;
     return fgetc(streams[0]);
 }
 
-void write_byte(unsigned char byte, void* context)
+static void write_byte(unsigned char byte, void* context)
 {
     FILE** streams = context;
     fputc(byte, streams[1]);
 }
 
-static bool encode(void)
+static bool encode(char const* in_path, char const* out_path)
 {
-    printf("Calling lzw_encode() on %s (out: %s)...\n",
-           encode_inpath, encode_outpath);
+    printf("Encoding %s to %s...\n", in_path, out_path);
+    FILE* streams[] = { fopen(in_path, "r"), fopen(out_path, "w") };
 
-    FILE* streams[] = { fopen(encode_inpath, "r"), fopen(encode_outpath, "w") };
-    bool success = lzw_encode(start_bits, max_bits, read_byte, write_byte,
-                              streams);
+    if (streams[0] == NULL || streams[1] == NULL) {
+        if (streams[0] != NULL) {
+            fclose(streams[0]);
+        } else if (streams[1] != NULL) {
+            fclose(streams[1]);
+        }
+
+        return false;
+    }
+
+    bool const success = lzw_encode(start_bits, max_bits, read_byte, write_byte,
+                                    streams);
 
     fclose(streams[0]);
     fclose(streams[1]);
@@ -40,12 +57,23 @@ static bool encode(void)
     return success;
 }
 
-static bool decode(void)
+static bool decode(char const* in_path, char const* out_path)
 {
     printf("Calling lzw_decode() on %s (out: %s)...\n",
-           decode_inpath, decode_outpath);
+           in_path, out_path);
 
-    FILE* streams[] = { fopen(decode_inpath, "r"), fopen(decode_outpath, "w") };
+    FILE* streams[] = { fopen(in_path, "r"), fopen(out_path, "w") };
+
+    if (streams[0] == NULL || streams[1] == NULL) {
+        if (streams[0] != NULL) {
+            fclose(streams[0]);
+        } else if (streams[1] != NULL) {
+            fclose(streams[1]);
+        }
+
+        return false;
+    }
+
     bool success = lzw_decode(start_bits, max_bits, read_byte, write_byte,
                               streams);
 
@@ -56,14 +84,48 @@ static bool decode(void)
     return success;
 }
 
-int main(void) {
-    bool success = encode() && decode();
+int main(int argc, char** argv) {
+    program_name = argv[0];
 
-    if (success) {
-        puts("Success!");
-        return EXIT_SUCCESS;
-    } else {
-        puts("Failed.");
+    if (argc != 4) {
+        usage(stderr);
         return EXIT_FAILURE;
     }
+
+    enum { ENCODE, DECODE } mode = ENCODE;
+    int opt;
+
+    while ((opt = getopt(argc, argv, "de")) != -1) {
+        switch (opt) {
+        case 'd':
+            mode = DECODE;
+            break;
+        case 'e':
+            mode = ENCODE;
+            break;
+        default:
+            usage(stderr);
+            return EXIT_FAILURE;
+        }
+    }
+
+    if (optind != 2) {
+        usage(stderr);
+        return EXIT_FAILURE;
+    }
+
+    char const* in_path = argv[optind];
+    char const* out_path = argv[optind + 1];
+    bool success;
+
+    switch (mode) {
+    case ENCODE:
+        success = encode(in_path, out_path);
+        break;
+    case DECODE:
+        success = decode(in_path, out_path);
+        break;
+    }
+
+    return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
