@@ -5,10 +5,10 @@
 
 #include <unistd.h>
 
-static char const* program_name;
+#define START_BITS  8
+#define MAX_BITS    24
 
-static unsigned int const start_bits = 8;
-static unsigned int const max_bits = 24;
+static char const* program_name;
 
 static void usage(FILE* stream)
 {
@@ -47,7 +47,7 @@ static bool encode(char const* in_path, char const* out_path)
         return false;
     }
 
-    bool const success = lzw_encode(start_bits, max_bits, read_byte, write_byte,
+    bool const success = lzw_encode(START_BITS, MAX_BITS, read_byte, write_byte,
                                     streams);
 
     fclose(streams[0]);
@@ -74,7 +74,7 @@ static bool decode(char const* in_path, char const* out_path)
         return false;
     }
 
-    bool success = lzw_decode(start_bits, max_bits, read_byte, write_byte,
+    bool success = lzw_decode(START_BITS, MAX_BITS, read_byte, write_byte,
                               streams);
 
     fclose(streams[0]);
